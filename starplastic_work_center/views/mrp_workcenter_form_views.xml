@@ -1,0 +1,38 @@
+<odoo>
+  <data>
+    <record id="view_mrp_workcenter_form_inherit_starplastic" model="ir.ui.view">
+      <field name="name">mrp.workcenter.form.inherit.starplastic</field>
+      <field name="model">mrp.workcenter</field>
+      <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="string">Machine Name</attribute>
+        </xpath>
+        <xpath expr="//field[@name='tag_ids']" position="attributes">
+        <attribute name="invisible">1</attribute>
+    </xpath>
+
+    <xpath expr="//field[@name='alternative_workcenter_ids']" position="attributes">
+        <attribute name="invisible">1</attribute>
+    </xpath>
+
+    <xpath expr="//field[@name='code']" position="attributes">
+        <attribute name="invisible">1</attribute>
+    </xpath>
+
+        <xpath expr="//field[@name='company_id']/.." position="after">
+          <group>
+            <field name="machine_no"/>
+                <field name="machine_type"/>
+                <field name="capacity_ton"/>
+                <field name="location_id"/>
+                <field name="remark"/>
+                <field name="max_power"/>
+                <field name="outgoing_job"/>
+                <field name="machine_shift"/>
+          </group>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>
