@@ -8,6 +8,7 @@ class MrpWorkcenter(models.Model):
     machine_type = fields.Selection([
         ('blow_molding', 'Blow Molding'),
         ('injection', 'Injection Molding'),
+        ('blow_injection', 'Blow Injection molding'),
         ('other', 'Other'),
     ], string="Machine Type")
 

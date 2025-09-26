@@ -1,12 +1,15 @@
 <odoo>
   <data>
-    <record id="mrp_workcenter_form_view_inherit_starpalstic" model="ir.ui.view">
+    <record id="view_mrp_workcenter_form_inherit_starplastic" model="ir.ui.view">
       <field name="name">mrp.workcenter.form.inherit.starplastic</field>
       <field name="model">mrp.workcenter</field>
       <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
       <field name="arch" type="xml">
         <xpath expr="//field[@name='name']" position="after">
             <field name="outgoing_job"/>
+        </xpath>
+        <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="string">Machine Name</attribute>
         </xpath>
         <xpath expr="//field[@name='tag_ids']" position="replace">
             <field name="machine_type"/>
@@ -38,12 +41,12 @@
       </field>
     </record>
 
-    <record id="mrp_workcenter_tree_view_inherit_starplastic" model="ir.ui.view">
+    <record id="view_mrp_workcenter_tree_inherit_starplastic" model="ir.ui.view">
       <field name="name">mrp.workcenter.list.inherit.starplastic</field>
       <field name="model">mrp.workcenter</field>
       <field name="inherit_id" ref="mrp.mrp_workcenter_tree_view"/>
       <field name="arch" type="xml">
-        <xpath expr="//list/field[@name='name']" position="before">
+      <xpath expr="//list/field[@name='name']" position="before">
           <field name="machine_no" optional="show"/>
         </xpath>
         <xpath expr="//list/field[@name='name']" position="after">

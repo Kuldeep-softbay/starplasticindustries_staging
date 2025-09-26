@@ -5,10 +5,10 @@
     'category': 'Manufacturing',
     'author': 'You',
     'website': '',
-    'depends': ['mrp'],
+    'depends': ['mrp', 'product'],
     'data': [
         'views/mrp_workcenter_form_views.xml',
-        # Add xml files here if you need to load views or access rights
+        'views/product_template_views.xml',
     ],
     'installable': True,
     'application': False,
