@@ -60,5 +60,8 @@
         </xpath>
       </field>
     </record>
+    <record id="mrp.mrp_workcenter_kanban_action" model="ir.actions.act_window">
+      <field name="name">Machine overview</field>
+    </record>
   </data>
 </odoo>
