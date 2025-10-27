@@ -8,6 +8,8 @@ class ProductTemplate(models.Model):
     raw_material = fields.Char("Raw Material")
     mould_name = fields.Char("Mould Name")
     difference = fields.Float("Difference")
+    is_product = fields.Boolean(string="Is Product?")
+    batch_number = fields.Char("Batch Number")
 
     product_counting_type = fields.Selection([
         ('kg', 'Kg'),

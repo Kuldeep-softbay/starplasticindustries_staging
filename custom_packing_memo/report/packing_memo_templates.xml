@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <template id="report_packing_memo">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.basic_layout">
+                    <t t-set="company" t-value="o.company_id or env.company"/>
+                    <t t-set="payload" t-value="o.get_packing_memo_payload()"/>
+                    <t t-set="details" t-value="payload.get('details', [])"/>
+                    <t t-set="summary" t-value="payload.get('summary', [])"/>
+
+                    <!-- Simple header box -->
+                    <div class="header-box border border-dark p-2 mb-3">
+                        <div class="row">
+                            <div class="col-3">
+                                <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height: 45px;" alt="Logo"/>
+                                <div class="mt-2"><t t-esc="company.name"/></div>
+                            </div>
+                            <div class="col-9">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <tr>
+                                        <td><strong>Format No:</strong> SLS-007:F01:02</td>
+                                        <td><strong>Effective date:</strong> <t t-esc="(o.exp_dispatch_date or (o.date_order and o.date_order.date())) or ''"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Page no.:</strong> 1 of 1</td>
+                                        <td><strong>Review Date:</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" class="text-center"><strong>Title: FORMAT FOR ISSUING OF PACKING MEMO</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                      <div>
+                        <div>
+                            PACKING MEMO NO: <t t-esc="o.name"/>
+                            <span style="float:right;">Date: <t t-esc="o.date_order and o.date_order.strftime('%d-%m-%Y') or ''"/></span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            Customer Name: <t t-esc="o.partner_id.display_name"/>
+                        </div>
+                        <div>
+                            Exp Dispatch Date: <t t-esc="o.exp_dispatch_date or ''"/>
+                        </div>
+                        <div>
+                            Exp Packing Date: <t t-esc="o.exp_packing_date or ''"/>
+                        </div>
+                        <div>
+                            Actual Packing Date: <t t-esc="o.actual_packing_date or ''"/>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            Remark: <t t-esc="o.remark or ''"/>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            Packing Details:
+                            <div style="white-space: pre-line; margin-left: 20px;">
+                                <t t-esc="o.packing_details or ''"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details table structure remains same but with updated styling -->
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">Sr.No.</th>
+                                <th style="width:160px;">BATCH NUM.</th>
+                                <th>ITEM NAME &amp; ITEM CODE</th>
+                                <th style="width:120px;">Remarks</th>
+                                <th style="width:100px;">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="details" t-as="d">
+                                <tr>
+                                    <td class="text-right"><t t-esc="d_index + 1"/></td>
+                                    <td><t t-esc="d['batch_number']"/></td>
+                                    <td>
+                                      <t t-esc="d['product_display_name']"/>
+                                      <t t-if="d['default_code']"> - <t t-esc="d['default_code']"/></t>
+                                    </td>
+                                    <td></td>
+                                    <td class="text-right"><t t-esc="d['qty']"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="not details">
+                                <tr><td colspan="5">No sale order lines found.</td></tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <!-- Summary table structure remains same but with updated styling -->
+                    <table class="table table-sm table-bordered mt-3">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">Sr.No.</th>
+                                <th>BATCH NUM.</th>
+                                <th>ITEM NAME &amp; ITEM CODE</th>
+                                <th style="width:120px;">Remarks</th>
+                                <th style="width:120px;">Total Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="summary" t-as="s">
+                                <tr>
+                                    <td class="text-right"><t t-esc="s_index + 1"/></td>
+                                    <td></td>
+                                    <td>
+                                      <t t-esc="s['product_display_name']"/>
+                                      <t t-if="s['default_code']"> - <t t-esc="s['default_code']"/></t>
+                                    </td>
+                                    <td></td>
+                                    <td class="text-right"><t t-esc="s['qty']"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="not summary">
+                                <tr><td colspan="5">No items</td></tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <!-- Footer with signature boxes -->
+                    <div class="mt-5">
+                        <table class="table table-bordered">
+                            <tr style="height: 60px;">
+                                <td width="25%">File Name<br/><small>FORMAT-SLS</small></td>
+                                <td>Prepared By:<br/><small>(Sign &amp; Date)</small></td>
+                                <td>Checked By:<br/><small>(Sign &amp; Date)</small></td>
+                                <td>Approved By:<br/><small>(Sign &amp; Date)</small></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                    <div>
+                        <div class="border border-danger text-danger p-2 d-inline-block">
+                            CONTROLLED COPY<br/>
+                            <small>Sign &amp; Date</small>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="border border-secondary text-secondary p-2 d-inline-block">
+                            MASTER COPY<br/>
+                            <small>Sign &amp; Date</small>
+                        </div>
+                    </div>
+                </div>
+
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

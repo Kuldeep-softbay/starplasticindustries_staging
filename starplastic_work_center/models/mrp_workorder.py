@@ -8,3 +8,5 @@ class MrpWorkorder(models.Model):
         'mrp.workcenter',
         string="Suitable Machine"
     )
+    batch_number = fields.Char('Batch Number')
+    expected_delivery_date = fields.Datetime('Expected Delivery Date')

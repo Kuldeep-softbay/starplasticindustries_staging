@@ -2,4 +2,8 @@ from . import mrp_workcenter
 from . import product_template
 from . import mrp_routing
 from . import mrp_workorder
-
+from . import mrp_production
+from . import mrp_workcenter_downtime_reason
+from . import mrp_workcenter_hourly_entry
+from . import mrp_shift_management
+from . import mrp_workcenter_shift

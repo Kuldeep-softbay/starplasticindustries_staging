@@ -14,8 +14,11 @@
         <xpath expr="//field[@name='workcenter_id']" position="after">
             <field name="standard_cycle_time_hourly"/>
         </xpath>
-         <xpath expr="//field[@name='workcenter_id']" position="replace">
+         <xpath expr="//field[@name='workcenter_id']" position="after">
             <field name="workcenter_ids" widget="many2many_checkboxes"/>
+        </xpath>
+        <xpath expr="//field[@name='workcenter_id']" position="attributes">
+            <attribute name="invisible">1</attribute>
         </xpath>
         <xpath expr="//field[@name='time_mode']" position="before">
             <field name="standard_production_per_hour"/>
