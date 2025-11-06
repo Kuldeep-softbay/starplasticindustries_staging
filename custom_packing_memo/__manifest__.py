@@ -5,9 +5,12 @@
     "category": "Sales",
     "depends": ["stock", 'sale_management'],
     "data": [
-        "views/sale_order_view.xml",
+        "views/res_company_views.xml",
+        "views/sale_order_views.xml",
+        "views/stock_picking_views.xml",
         "report/packing_memo_report.xml",
         "report/packing_memo_templates.xml",
+        # "report/sale_order_report.xml",
     ],
     "license": "LGPL-3",
     "application": False,

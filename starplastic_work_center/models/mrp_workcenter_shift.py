@@ -79,7 +79,7 @@ class WCShift(models.Model):
     _order = 'date desc, id desc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    name = fields.Char(compute='_compute_name', store=True)
+    name = fields.Char(compute='_compute_name', store=True, tracking=True)
     production_id = fields.Many2one('mrp.production', required=True, tracking=True, ondelete='cascade')
     date = fields.Date(required=True, tracking=True)
     template_id = fields.Many2one('wc.shift.template', required=True, tracking=True)
@@ -108,6 +108,14 @@ class WCShift(models.Model):
         ('uniq_mo_date_template', 'unique(production_id, date, template_id)',
          'A shift already exists for this MO, date, and template.')
     ]
+    total_produced_qty = fields.Float('Total Produced Quantity', compute='_compute_total_produced_qty', store=True)
+
+    @api.depends('entry_ids.produced_qty_number')
+    def _compute_total_produced_qty(self):
+        for rec in self:
+            rec.total_produced_qty = sum(rec.entry_ids.mapped('produced_qty_number'))
+
+
 
     @api.depends('production_id', 'date', 'template_id')
     def _compute_name(self):

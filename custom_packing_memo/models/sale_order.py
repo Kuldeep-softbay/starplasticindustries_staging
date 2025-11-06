@@ -42,3 +42,58 @@ class SaleOrder(models.Model):
             "details": details,
             "summary": summary,
         }
+    
+    workorder_count = fields.Integer(
+        string='Work Orders',
+        compute='_compute_workorder_count'
+    )
+
+    # def _compute_workorder_count(self):
+    #     for order in self:
+    #         order.workorder_count = self.env['mrp.workorder'].search_count([
+    #             ('production_id.origin', '=', order.name)
+    #         ])
+
+    def _compute_workorder_count(self):
+        data = self.env['mrp.workorder']._read_group([
+            ('operation_id', 'in', self.ids),
+            ('state', '=', 'done')], ['operation_id'], ['__count'])
+        count_data = {operation.id: count for operation, count in data}
+        for operation in self:
+            operation.workorder_count = count_data.get(operation.id, 0)
+
+    def action_view_workorders(self):
+        self.ensure_one()
+        workorders = self.env['mrp.workorder'].search([
+            ('production_id.origin', '=', self.name)
+        ])
+
+        action_ref = False
+        try:
+            action_ref = self.env.ref('mrp.mrp_workorder_todo', False)
+        except Exception:
+            action_ref = False
+
+        if action_ref:
+            action = action_ref.read()[0]
+        else:
+            act = self.env['ir.actions.act_window'].search([
+                ('res_model', '=', 'mrp.workorder')
+            ], limit=1)
+            if act:
+                action = act.read()[0]
+            else:
+                action = {
+                    'type': 'ir.actions.act_window',
+                    'name': _('Work Orders'),
+                    'res_model': 'mrp.workorder',
+                    'view_mode': 'tree,form',
+                }
+
+        if len(workorders) == 1:
+            action['views'] = [(False, 'form')]
+            action['res_id'] = workorders.id
+        else:
+            action['domain'] = [('id', 'in', workorders.ids)]
+
+        return action

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_picking_outgoing_form_inherit" model="ir.ui.view">
+    <field name="name">stock.picking.starplast</field>
+    <field name="model">stock.picking</field>
+    <field name="inherit_id" ref="stock.view_picking_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='location_dest_id']" position="after">
+                <field name="rm_add_date"/>
+                <!-- <field name="party_id"/> -->
+                <field name="row_type"/>
+                <field name="supplier_batch_number"/>
+                <field name="internal_batch_number"/>
+      </xpath>
+      <xpath expr="//field[@name='origin']" position="after">
+                <field name="mfi_value"/>
+                <field name="bags_type"/>
+                <field name="number_of_bags"/>
+                <field name="particulars"/>
+                <field name="invoice_number"/>
+                <field name="remarks"/>
+      </xpath>
+    </field>
+  </record>
+
+  <record id="view_picking_outgoing_tree_inherit" model="ir.ui.view">
+        <field name="name">stock.picking.list.starplast</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <field name="origin" position="after">
+                <field name="rm_add_date" optional="show"/>
+                <field name="invoice_number" optional="show"/>
+                <field name="row_type" optional="show"/>
+                <field name="internal_batch_number" optional="show"/>
+                <field name="supplier_batch_number" optional="show"/>
+                <field name="mfi_value" optional="show"/>
+                <field name="bags_type" optional="show"/>
+                <field name="number_of_bags" optional="show"/>
+                <field name="particulars" optional="show"/>
+                <field name="remarks" optional="show"/>
+            </field>
+        </field>
+    </record>
+</odoo>

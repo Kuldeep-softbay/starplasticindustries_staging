@@ -7,3 +7,4 @@ from . import mrp_workcenter_downtime_reason
 from . import mrp_workcenter_hourly_entry
 from . import mrp_shift_management
 from . import mrp_workcenter_shift
+from . import res_company

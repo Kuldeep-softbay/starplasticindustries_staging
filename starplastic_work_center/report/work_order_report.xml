@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- ✅ Custom Header -->
+  <template id="custom_report_header">
+    <div class="header" style="text-align: center; width: 100%; margin-bottom: 10px;">
+      <img t-if="company_id and company_id.work_order_header_image"
+           t-att-src="'data:image/png;base64,%s' % (company_id.work_order_header_image.decode() if isinstance(company_id.work_order_header_image, bytes) else company_id.work_order_header_image)"
+           style="width: 100%; max-height: 100px; object-fit: contain;"/>
+    </div>
+  </template>
+
+  <!-- ✅ Custom Footer -->
+  <template id="custom_report_footer">
+    <div class="footer" style="text-align: center; width: 100%; margin-top: 10px;">
+      <img t-if="company_id and company_id.work_order_footer_image"
+           t-att-src="'data:image/png;base64,%s' % (company_id.work_order_footer_image.decode() if isinstance(company_id.work_order_footer_image, bytes) else company_id.work_order_footer_image)"
+           style="width: 100%; max-height: 80px; object-fit: contain;"/>
+    </div>
+  </template>
+
+  <!-- ✅ Main Work Order Report -->
+  <template id="work_order_report_template">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="o">
+
+        <!-- Pass company_id safely -->
+        <t t-set="company_id" t-value="o.company_id"/>
+
+        <!-- Include header -->
+        <t t-call="starplastic_work_center.custom_report_header"/>
+
+        <div class="page" style="margin-top: 10px;">
+          <h2 style="margin-bottom: 15px; font-weight: bold;">Work Order Report</h2>
+
+          <table class="table table-sm" style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #000;">
+            <thead style="background-color: #f2f2f2;">
+              <tr style="border: 1px solid #000; text-align: center;">
+                <th style="padding: 6px; border: 1px solid #000;">Sr.No</th>
+                <th style="padding: 6px; border: 1px solid #000;">Item Name</th>
+                <th style="padding: 6px; border: 1px solid #000;">CO Number</th>
+                <th style="padding: 6px; border: 1px solid #000;">Planned Qty</th>
+                <th style="padding: 6px; border: 1px solid #000;">Produced Qty</th>
+                <th style="padding: 6px; border: 1px solid #000;">Batch Number</th>
+                <th style="padding: 6px; border: 1px solid #000;">Exp. Delivery Date</th>
+                <th style="padding: 6px; border: 1px solid #000;">Actual Delivery Date</th>
+                <th style="padding: 6px; border: 1px solid #000;">Remarks</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <!-- ✅ Show Finished Products -->
+              <t t-foreach="o.move_finished_ids" t-as="line">
+                <tr t-attf-style="border: 1px solid #000; background-color: {{ '#ffffff' if line_index % 2 == 0 else '#f9f9f9' }};">
+                  
+                  <!-- Sr.No -->
+                  <td style="padding: 6px; text-align: center; border: 1px solid #000;">
+                    <span t-esc="line_index + 1"/>
+                  </td>
+
+                  <!-- Item Name -->
+                  <td style="padding: 6px; border: 1px solid #000;">
+                    <span t-esc="line.product_id.display_name or ''"/>
+                  </td>
+
+                  <!-- CO Number -->
+                <td style="padding: 6px; border: 1px solid #000;">
+                    <span t-esc="o.workorder_ids[:1].customer_po_number or '-'"/>
+                </td>
+
+                  <!-- Planned Quantity -->
+                  <td style="padding: 6px; text-align: right; border: 1px solid #000;">
+                    <span t-esc="line.product_uom_qty or 0"/>
+                  </td>
+
+                  <!-- Produced Quantity -->
+                  <td style="padding: 6px; text-align: right; border: 1px solid #000;">
+                    <span t-esc="sum(line.move_line_ids.mapped('qty_done')) if line.move_line_ids else 0"/>
+                  </td>
+
+                  <!-- Batch Number -->
+                  <td style="padding: 6px; text-align: center; border: 1px solid #000;">
+                    <span t-esc="', '.join(line.lot_ids.mapped('name')) if line.lot_ids else ''"/>
+                  </td>
+
+                  <!-- Expected Delivery Date -->
+                <td style="padding: 6px; text-align: center; border: 1px solid #000;">
+                    <span t-esc="o.workorder_ids[:1].expected_delivery_date or '-'"/>
+                </td>
+
+                <!-- Actual Delivery Date -->
+                <td style="padding: 6px; text-align: center; border: 1px solid #000;">
+                    <span t-esc="o.workorder_ids[:1].actual_delivery_date or '-'"/>
+                </td>
+
+                <!-- Remarks -->
+                <td style="padding: 6px; border: 1px solid #000;">
+                    <span t-esc="o.workorder_ids[:1].remark or '-'"/>
+                </td>
+                </tr>
+              </t>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Include footer -->
+        <t t-call="starplastic_work_center.custom_report_footer"/>
+
+      </t>
+    </t>
+  </template>
+</odoo>

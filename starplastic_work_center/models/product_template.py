@@ -21,6 +21,7 @@ class ProductTemplate(models.Model):
         ('blow', 'Blow molding'),
         ('injection', 'Injection molding'),
         ('blow_injection', 'Blow Injection molding'),
+        ('other', 'Other'),
     ], string="Process")
 
     rm_formulation = fields.Text("RM Formulation")

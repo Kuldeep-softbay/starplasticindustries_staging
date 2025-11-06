@@ -57,6 +57,7 @@
         <field name="cycle_time_sec"/>
         <field name="hourly_target_qty"/>
         <field name="state"/>
+        <field name="total_produced_qty"/>
       </list>
     </field>
   </record>
@@ -85,6 +86,7 @@
               <field name="cavity"/>
               <field name="cycle_time_sec"/>
               <field name="hourly_target_qty" readonly="1"/>
+              <field name="total_produced_qty"/>
             </group>
           </group>
 

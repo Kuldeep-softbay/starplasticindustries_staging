@@ -17,15 +17,15 @@
          <xpath expr="//field[@name='workcenter_id']" position="after">
             <field name="workcenter_ids" widget="many2many_checkboxes"/>
         </xpath>
-        <xpath expr="//field[@name='workcenter_id']" position="attributes">
+        <!-- <xpath expr="//field[@name='workcenter_id']" position="attributes">
             <attribute name="invisible">1</attribute>
-        </xpath>
+        </xpath> -->
         <xpath expr="//field[@name='time_mode']" position="before">
             <field name="standard_production_per_hour"/>
         </xpath>
         <xpath expr="//field[@name='time_mode']" position="before">
             <field name="cycle_time_tolerance"/>
-        </xpath>
+        </xpath>   
       </field>
     </record>
 

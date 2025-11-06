@@ -5,7 +5,7 @@ from odoo.exceptions import ValidationError
 class MrpRoutingWorkcenter(models.Model):
     _inherit = 'mrp.routing.workcenter'
 
-    name = fields.Char(string="Mould Name", required=True)
+    name = fields.Char(string="Mould Name")
     workcenter_ids = fields.Many2many(
         'mrp.workcenter',
         'workcenter_id',
