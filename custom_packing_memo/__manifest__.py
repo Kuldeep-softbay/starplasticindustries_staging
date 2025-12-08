@@ -11,6 +11,7 @@
         "report/packing_memo_report.xml",
         "report/packing_memo_templates.xml",
         # "report/sale_order_report.xml",
+        "views/sale_report_views.xml",
     ],
     "license": "LGPL-3",
     "application": False,

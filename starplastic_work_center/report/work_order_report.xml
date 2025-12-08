@@ -85,13 +85,14 @@
 
                   <!-- Expected Delivery Date -->
                 <td style="padding: 6px; text-align: center; border: 1px solid #000;">
-                    <span t-esc="o.workorder_ids[:1].expected_delivery_date or '-'"/>
+                  <span t-esc="o.workorder_ids[:1].expected_delivery_date and o.workorder_ids[:1].expected_delivery_date.strftime('%d/%m/%y') or '-'"/>
                 </td>
 
                 <!-- Actual Delivery Date -->
                 <td style="padding: 6px; text-align: center; border: 1px solid #000;">
-                    <span t-esc="o.workorder_ids[:1].actual_delivery_date or '-'"/>
+                    <span t-esc="o.workorder_ids[:1].actual_delivery_date and o.workorder_ids[:1].actual_delivery_date.strftime('%d/%m/%y') or '-'"/>
                 </td>
+
 
                 <!-- Remarks -->
                 <td style="padding: 6px; border: 1px solid #000;">

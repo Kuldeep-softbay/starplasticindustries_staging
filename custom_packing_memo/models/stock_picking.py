@@ -19,6 +19,17 @@ class StockPicking(models.Model):
     number_of_bags = fields.Integer(string='Number of Bags')
     particulars = fields.Text(string='Particulars')
     remarks = fields.Text(string='Remarks')
+    # party_id = fields.Many2one(
+    #     'job.party.work',
+    #     string='Job Party',
+    #     ondelete='restrict',
+    # )
+
+    batch_number = fields.Char(string='Batch Number')
+    removal_type = fields.Selection([
+        ('normal', 'Normal'),
+        ('other', 'Other')
+    ], string='Removal Type', default='normal')
 
     @api.model
     def create(self, vals):

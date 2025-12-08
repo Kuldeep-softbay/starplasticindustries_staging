@@ -31,14 +31,16 @@ class MrpWorkorder(models.Model):
 class JobPartyWork(models.Model):
     _name = 'job.party.work'
     _description = 'Job Party Work'
-    
+
     name = fields.Char('Job Party Name')
     work_type = fields.Selection([
         ('inward', 'Inward'),
-        ('outword', 'Outword')], string='Type')
+        ('outword', 'Outword')
+    ], string='Type')
     remark = fields.Text('Remark')
+
     # party_ids = fields.One2many(
     #     'stock.picking',
     #     'party_id',
-    #     string='Related Pickings'
+    #     string='Job Party Pickings'
     # )

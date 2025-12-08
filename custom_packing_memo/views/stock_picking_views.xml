@@ -11,6 +11,8 @@
                 <field name="row_type"/>
                 <field name="supplier_batch_number"/>
                 <field name="internal_batch_number"/>
+                <field name="batch_number" invisible=""/>
+                <field name="removal_type"/>
       </xpath>
       <xpath expr="//field[@name='origin']" position="after">
                 <field name="mfi_value"/>
@@ -30,6 +32,8 @@
         <field name="arch" type="xml">
             <field name="origin" position="after">
                 <field name="rm_add_date" optional="show"/>
+                <field name="batch_number" optional="show"/>
+                <field name="removal_type" optional="show"/>
                 <field name="invoice_number" optional="show"/>
                 <field name="row_type" optional="show"/>
                 <field name="internal_batch_number" optional="show"/>

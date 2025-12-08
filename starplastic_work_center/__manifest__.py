@@ -4,7 +4,7 @@
     'category': 'Manufacturing',
     'author': 'Kuldeep Singh',
     'website': '',
-    'depends': ['mrp', 'sale_management', 'purchase', 'custom_packing_memo'],
+    'depends': ['mrp', 'sale_management', 'purchase', 'custom_packing_memo', 'stock'],
     'data': [
         'security/ir.model.access.csv',
         'data/mrp_workcenter_default_shift_data.xml',
