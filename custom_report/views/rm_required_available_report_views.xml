@@ -1,0 +1,83 @@
+<odoo>
+    <!-- Wizard form -->
+    <record id="view_rm_required_available_wizard_form" model="ir.ui.view">
+        <field name="name">rm.required.available.wizard.form</field>
+        <field name="model">rm.required.available.wizard</field>
+        <field name="arch" type="xml">
+            <form string="RM Required and Available Report">
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="partner_id"/>
+                        <field name="raw_type"/>
+                    </group>
+                    <group>
+                        <!-- you can uncomment location if you want filter by store -->
+                        <!-- <field name="location_id"/> -->
+                        <field name="product_id"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_show_report"
+                            string="Show"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel"
+                            special="cancel"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree view -->
+    <record id="view_rm_required_available_report_tree" model="ir.ui.view">
+        <field name="name">rm.required.available.report.tree</field>
+        <field name="model">rm.required.available.report</field>
+        <field name="arch" type="xml">
+            <list string="RM Required and Available" create="false" edit="false" delete="false">
+                <field name="date"/>
+                <field name="particulars"/>
+                <field name="product_id"/>
+                <field name="batch"/>
+                <field name="grade"/>
+                <field name="vendor_id"/>
+                <field name="invoice_no"/>
+                <field name="received_qty"/>
+                <field name="pmemo_no"/>
+                <field name="issue_qty"/>
+                <field name="balance_qty"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Search view (optional) -->
+    <record id="view_rm_required_available_report_search" model="ir.ui.view">
+        <field name="name">rm.required.available.report.search</field>
+        <field name="model">rm.required.available.report</field>
+        <field name="arch" type="xml">
+            <search string="RM Required and Available">
+                <field name="date"/>
+                <field name="product_id"/>
+                <field name="vendor_id"/>
+                <field name="grade"/>
+                <group expand="0" string="Group By">
+                    <filter name="groupby_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="groupby_vendor" string="Vendor" context="{'group_by': 'vendor_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_rm_required_available_wizard" model="ir.actions.act_window">
+        <field name="name">RM Required and Available Report</field>
+        <field name="res_model">rm.required.available.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_rm_required_available_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -5,6 +5,7 @@
     "category": "Sales",
     "depends": ["stock", 'sale_management'],
     "data": [
+        "security/ir.model.access.csv",
         "views/res_company_views.xml",
         "views/sale_order_views.xml",
         "views/stock_picking_views.xml",

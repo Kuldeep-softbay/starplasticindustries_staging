@@ -31,6 +31,8 @@ class MrpWorkorder(models.Model):
 class JobPartyWork(models.Model):
     _name = 'job.party.work'
     _description = 'Job Party Work'
+    _rec_name = 'name'
+
 
     name = fields.Char('Job Party Name')
     work_type = fields.Selection([
@@ -39,8 +41,8 @@ class JobPartyWork(models.Model):
     ], string='Type')
     remark = fields.Text('Remark')
 
-    # party_ids = fields.One2many(
-    #     'stock.picking',
-    #     'party_id',
-    #     string='Job Party Pickings'
-    # )
+    party_ids = fields.One2many(
+        'stock.picking',
+        'party_id',
+        string='Job Party Pickings'
+    )

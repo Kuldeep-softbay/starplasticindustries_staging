@@ -8,8 +8,10 @@
             <xpath expr="//page[@name='branches']" position="after">
                 <page string="Sales Header/Footer">
                     <group string="Packing Memo Branding">
-                        <field name="packing_header_image" widget="image" class="oe_avatar"/>
                         <field name="packing_footer_image" widget="image" class="oe_avatar"/>
+                        <field name="header_format_no"/>
+                        <field name="header_effective_date"/>
+                        <field name="header_review_date"/>
                     </group>
 
                     <group string="Quotation Branding">

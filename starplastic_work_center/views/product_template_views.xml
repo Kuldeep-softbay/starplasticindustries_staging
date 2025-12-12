@@ -10,6 +10,7 @@
 
         <xpath expr="//field[@name='type']" position="after">
             <field name="product_code"/>
+            <field name="batch_number" invisible="1"/>
             <field name="product_insert"/>
             <field name="raw_material"/>
             <field name="product_counting_type"/>
@@ -29,6 +30,7 @@
     <field name="arch" type="xml">
         <xpath expr="//list" position="inside">
             <field name="product_insert" optional="show"/>
+            <field name="batch_number" optional="hide"/>
             <field name="raw_material" optional="show"/>
             <field name="product_counting_type" optional="show"/>
             <field name="unit_weight_tolerance" optional="show"/>

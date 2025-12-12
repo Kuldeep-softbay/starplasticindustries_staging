@@ -6,11 +6,14 @@
         <field name="model">purchase.report</field>
         <field name="inherit_id" ref="purchase.purchase_report_view_tree"/>
         <field name="arch" type="xml">
-            <xpath expr="//list/field[@name='partner_id']" position="after">
+            <xpath expr="//list/field[@name='product_id']" position="after">
                 <field name="opening_stock"/>
                 <field name="purchase_qty"/>
                 <field name="issue_qty"/>
                 <field name="closing_stock"/>
+            </xpath>
+             <xpath expr="//list/field[@name='date_order']" position="attributes">
+                <attribute name="optional">hide</attribute>
             </xpath>
         </field>
     </record>
