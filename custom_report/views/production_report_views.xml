@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard form -->
+    <record id="view_production_report_wizard_form" model="ir.ui.view">
+        <field name="name">production.report.wizard.form</field>
+        <field name="model">production.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Production Report">
+                <group>
+                    <group>
+                        <field name="product_id"/>
+                        <field name="lot_id"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_show_report" string="Show" type="object" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree view for production.report.line -->
+    <record id="view_production_report_line_tree" model="ir.ui.view">
+        <field name="name">production.report.line.tree</field>
+        <field name="model">production.report.line</field>
+        <field name="arch" type="xml">
+            <list string="Production Report" create="false" edit="false" delete="false">
+                <field name="date"/>
+                <field name="particulars"/>
+                <field name="product_id"/>
+                <field name="batch"/>
+                <field name="total_production"/>
+                <field name="total_dispatch"/>
+                <field name="total_reject"/>
+                <field name="balance"/>
+                <field name="location_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Search view for the report lines -->
+    <record id="view_production_report_line_search" model="ir.ui.view">
+        <field name="name">production.report.line.search</field>
+        <field name="model">production.report.line</field>
+        <field name="arch" type="xml">
+            <search string="Production Report">
+                <field name="date"/>
+                <field name="product_id"/>
+                <field name="batch"/>
+                <field name="location_id"/>
+                <filter name="groupby_product" string="Product" context="{'group_by':'product_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action to open wizard -->
+    <record id="action_production_report_wizard" model="ir.actions.act_window">
+        <field name="name">Production Report</field>
+        <field name="res_model">production.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_production_report_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

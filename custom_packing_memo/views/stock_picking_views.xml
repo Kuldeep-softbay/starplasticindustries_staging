@@ -7,7 +7,7 @@
     <field name="arch" type="xml">
       <xpath expr="//field[@name='location_dest_id']" position="after">
                 <field name="rm_add_date"/>
-                <!-- <field name="party_id"/> -->
+                <field name="party_id"/>
                 <field name="row_type"/>
                 <field name="supplier_batch_number"/>
                 <field name="internal_batch_number"/>

@@ -8,9 +8,9 @@
         <xpath expr="//field[@name='workcenter_id']" position="after">
             <field name="cavity"/>
         </xpath>
-        <xpath expr="//field[@name='employee_ratio']" position="replace">
+        <!-- <xpath expr="//field[@name='employee_ratio']" position="replace">
             <field name="standard_cycle_time"/>
-        </xpath>
+        </xpath> -->
         <xpath expr="//field[@name='workcenter_id']" position="after">
             <field name="standard_cycle_time_hourly"/>
         </xpath>
@@ -38,9 +38,9 @@
         <xpath expr="//list/field[@name='bom_id']" position="attributes">
                 <attribute name="optional">show</attribute>
         </xpath>
-        <xpath expr="//list/field[@name='quality_point_count']" position="attributes">
+        <!-- <xpath expr="//list/field[@name='quality_point_count']" position="attributes">
                 <attribute name="optional">show</attribute>
-        </xpath>
+        </xpath> -->
         <xpath expr="//list/field[@name='time_cycle']" position="attributes">
                 <attribute name="optional">show</attribute>
         </xpath>

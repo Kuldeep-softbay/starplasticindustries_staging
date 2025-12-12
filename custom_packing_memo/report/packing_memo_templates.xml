@@ -1,40 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
-    <template id="report_packing_memo">
-        <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="o">
-                <t t-call="web.basic_layout">
-                    <t t-set="company" t-value="o.company_id or env.company"/>
-                    <t t-set="payload" t-value="o.get_packing_memo_payload()"/>
-                    <t t-set="details" t-value="payload.get('details', [])"/>
-                    <t t-set="summary" t-value="payload.get('summary', [])"/>
 
-                    <!-- Simple header box -->
-                    <div class="header-box border border-dark p-2 mb-3">
-                        <div class="row">
-                            <div class="col-3">
-                                <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height: 45px;" alt="Logo"/>
-                                <div class="mt-2"><t t-esc="company.name"/></div>
-                            </div>
-                            <div class="col-9">
-                                <table class="table table-sm table-bordered mb-0">
-                                    <tr>
-                                        <td><strong>Format No:</strong> SLS-007:F01:02</td>
-                                        <td><strong>Effective date:</strong> <t t-esc="(o.exp_dispatch_date or (o.date_order and o.date_order.date())) or ''"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Page no.:</strong> 1 of 1</td>
-                                        <td><strong>Review Date:</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-center"><strong>Title: FORMAT FOR ISSUING OF PACKING MEMO</strong></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+  <template id="packing_report_header">
+    <div class="header" style="text-align: center; width: 100%; margin-bottom: 10px;">
+      <img t-if="company and company.packing_header_image"
+           t-att-src="'data:image/png;base64,%s' % (company.packing_header_image.decode() if isinstance(company.packing_header_image, bytes) else company.packing_header_image)"
+           style="width: 100%; max-height: 100px; object-fit: contain;"/>
+    </div>
+  </template>
 
-                      <div>
+  <template id="packing_report_footer">
+    <div class="footer" style="text-align: center; width: 100%; margin-top: 10px;">
+      <img t-if="company and company.packing_footer_image"
+           t-att-src="'data:image/png;base64,%s' % (company.packing_footer_image.decode() if isinstance(company.packing_footer_image, bytes) else company.packing_footer_image)"
+           style="width: 100%; max-height: 80px; object-fit: contain;"/>
+    </div>
+  </template>
+
+  <template id="report_packing_memo">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="o">
+        <t t-call="web.basic_layout">
+          <t t-set="company" t-value="o.company_id or env.company"/>
+          <t t-set="payload" t-value="o.get_packing_memo_payload()"/>
+          <t t-set="details" t-value="payload.get('details', [])"/>
+          <t t-set="summary" t-value="payload.get('summary', [])"/>
+
+          <!-- use full external id if module name is custom_packing_memo; change if your module name differs -->
+          <t t-call="custom_packing_memo.packing_report_header"/>
+          <div>
                         <div>
                             PACKING MEMO NO: <t t-esc="o.name"/>
                             <span style="float:right;">Date: <t t-esc="o.date_order and o.date_order.strftime('%d-%m-%Y') or ''"/></span>
@@ -121,35 +115,9 @@
                             </t>
                         </tbody>
                     </table>
-
-                    <!-- Footer with signature boxes -->
-                    <div class="mt-5">
-                        <table class="table table-bordered">
-                            <tr style="height: 60px;">
-                                <td width="25%">File Name<br/><small>FORMAT-SLS</small></td>
-                                <td>Prepared By:<br/><small>(Sign &amp; Date)</small></td>
-                                <td>Checked By:<br/><small>(Sign &amp; Date)</small></td>
-                                <td>Approved By:<br/><small>(Sign &amp; Date)</small></td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="d-flex justify-content-between mt-4">
-                    <div>
-                        <div class="border border-danger text-danger p-2 d-inline-block">
-                            CONTROLLED COPY<br/>
-                            <small>Sign &amp; Date</small>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="border border-secondary text-secondary p-2 d-inline-block">
-                            MASTER COPY<br/>
-                            <small>Sign &amp; Date</small>
-                        </div>
-                    </div>
-                </div>
-
-                </t>
-            </t>
+          <t t-call="custom_packing_memo.packing_report_footer"/>
         </t>
-    </template>
+      </t>
+    </t>
+  </template>
 </odoo>

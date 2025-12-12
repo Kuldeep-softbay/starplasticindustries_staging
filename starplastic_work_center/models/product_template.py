@@ -25,3 +25,4 @@ class ProductTemplate(models.Model):
 
     rm_formulation = fields.Text("RM Formulation")
     packing_method = fields.Char("Packing Method")
+    batch_number = fields.Char("Batch Number")
