@@ -1,6 +1,12 @@
 from odoo import api, fields, models, _
 from datetime import datetime
 
+class ProductTemplate(models.Model):
+    _inherit = "product.product"
+
+    batch_number = fields.Char(string='Batch Number', help="Batch number associated with the product.")
+
+
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 

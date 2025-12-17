@@ -14,6 +14,7 @@
         "views/production_report_views.xml",
         "views/dispatch_delay_report_views.xml",
         "views/fg_rm_report_menu_views.xml",
+        "views/dispatch_delay_report_summery_views.xml",
         "reports/rm_stock_sheet_report_templates.xml",
         "reports/rm_grade_wise_stock_report_templates.xml",
     ],

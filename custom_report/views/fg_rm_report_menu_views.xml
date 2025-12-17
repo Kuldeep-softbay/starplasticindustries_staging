@@ -5,6 +5,9 @@
     <menuitem id="menu_rm_reports"
               name="RM Reports"
               parent="stock.menu_warehouse_report"/>
+    <menuitem id="menu_dispatch_delay_reports"
+              name="Dispatch Reports"
+              parent="stock.menu_warehouse_report"/>
 
     <menuitem id="menu_fg_store_report"
               name="FG Stock Report"
@@ -38,9 +41,5 @@
               name="FG Work Order Wise Report"
               parent="menu_fg_reports"
               action="action_fg_work_order_wise_wizard"/>
-    <menuitem id="menu_dispatch_delay_report"
-              name="Dispatch Delay Report" 
-              parent="menu_fg_reports" 
-              action="action_dispatch_delay"/>
 </odoo>
     

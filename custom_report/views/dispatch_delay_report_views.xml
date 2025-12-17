@@ -1,46 +1,54 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Tree view for delayed pickings -->
-    <record id="view_dispatch_delay_tree" model="ir.ui.view">
-        <field name="name">stock.picking.dispatch.delay.tree</field>
-        <field name="model">stock.picking</field>
+
+    <record id="view_dispatch_delay_report_tree" model="ir.ui.view">
+        <field name="name">dispatch.delay.report.list</field>
+        <field name="model">dispatch.delay.report</field>
         <field name="arch" type="xml">
-            <list string="Dispatch Delay Report">
-                <field name="packing_slip_no" string="Packing Slip No"/>
-                <field name="customer_name" string="Customer Name"/>
-                <field name="exp_dispatch_date" string="Exp Dispatch Date"/>
-                <field name="dispatch_date" string="Dispatch Date"/>
-                <field name="delay_reason" string="Remark"/>
-                <field name="total_qty" string="Total Qty"/>
-                <field name="state" string="State"/>
+            <list string="Dispatch Delay">
+                <field name="packing_slip_no"/>
+                <field name="partner_id"/>
+                <field name="exp_dispatch_date"/>
+                <field name="dispatch_date"/>
+                <field name="remark"/>
+                <field name="total_qty"/>
+                <button name="action_hide"
+                            type="object"
+                            string="Hide"
+                            class="btn-primary"/>
             </list>
         </field>
     </record>
 
-    <!-- Search view -->
-    <record id="view_dispatch_delay_search" model="ir.ui.view">
-        <field name="name">stock.picking.dispatch.delay.search</field>
-        <field name="model">stock.picking</field>
-        <field name="arch" type="xml">
-            <search string="Dispatch Delay">
-                <field name="packing_slip_no"/>
-                <field name="partner_id"/>
-                <field name="scheduled_date"/>
-                <field name="state"/>
-                <filter name="delayed" string="Delayed" domain="[('scheduled_date','&lt;', context_today()), ('state','not in', ['done','cancel'])]"/>
-            </search>
-        </field>
+    <record id="view_dispatch_delay_reason_wizard" model="ir.ui.view">
+    <field name="name">dispatch.delay.reason.wizard.form</field>
+    <field name="model">dispatch.delay.reason.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Acknowledge Dispatch Delay">
+            <group>
+                <field name="picking_id"/>
+                <field name="reason"/>
+            </group>
+            <footer>
+                <button string="Confirm"
+                        type="object"
+                        name="action_confirm"
+                        class="btn-primary"/>
+                <button string="Cancel"
+                        special="cancel"/>
+            </footer>
+        </form>
+    </field>
+</record>
+
+
+    <record id="action_dispatch_delay_report" model="ir.actions.act_window">
+        <field name="name">Dispatch Delay</field>
+        <field name="res_model">dispatch.delay.report</field>
+        <field name="view_mode">list</field>
     </record>
 
-    <!-- Action to open the tree view pre-filtered for delayed pickings -->
-    <record id="action_dispatch_delay" model="ir.actions.act_window">
-        <field name="name">Dispatch Delay Report</field>
-        <field name="res_model">stock.picking</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_dispatch_delay_tree"/>
-        <!-- Domain: scheduled_date < today AND state not done/cancel -->
-        <field name="domain">[('scheduled_date','&lt;', context_today()), ('state','not in', ['done','cancel'])]</field>
-        <field name="context">{}</field>
-        <field name="target">current</field>
-    </record>
+    <menuitem id="menu_dispatch_delay_report"
+              name="Dispatch Delay"
+              parent="menu_dispatch_delay_reports"
+              action="action_dispatch_delay_report"/>
 </odoo>
