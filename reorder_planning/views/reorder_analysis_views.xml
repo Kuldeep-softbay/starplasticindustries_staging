@@ -1,0 +1,74 @@
+<odoo>
+    <!-- List View -->
+    <record id="view_reorder_planning_tree" model="ir.ui.view">
+        <field name="name">reorder.planning.tree</field>
+        <field name="model">reorder.planning</field>
+        <field name="arch" type="xml">
+            <list string="Reorder Planning">
+                <field name="computation_date" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="product_id" optional="show"/>
+                <field name="categ_id" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="sum_last_n" optional="show"/>
+                <field name="avg_month" optional="show"/>
+                <field name="on_hand_qty" optional="show"/>
+                <field name="lead_time_days" optional="show"/>
+                <field name="reorder_point" optional="show"/>
+                <field name="required_qty" optional="show"/>
+                <field name="suggested_qty" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Pivot View -->
+    <record id="view_reorder_planning_pivot" model="ir.ui.view">
+        <field name="name">reorder.planning.pivot</field>
+        <field name="model">reorder.planning</field>
+        <field name="arch" type="xml">
+            <pivot string="Reorder Planning Analysis">
+                <!-- Dimensions -->
+                <field name="company_id" type="row"/>
+                <field name="categ_id" type="row"/>
+                <field name="product_id" type="row"/>
+                <field name="computation_date" type="col" interval="month"/>
+
+                <!-- Measures -->
+                <field name="sum_last_n" type="measure"/>
+                <field name="avg_month" type="measure"/>
+                <field name="on_hand_qty" type="measure"/>
+                <field name="reorder_point" type="measure"/>
+                <field name="required_qty" type="measure"/>
+                <field name="suggested_qty" type="measure"/>
+                <field name="lead_time_days" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View (optional but useful) -->
+    <record id="view_reorder_planning_graph" model="ir.ui.view">
+        <field name="name">reorder.planning.graph</field>
+        <field name="model">reorder.planning</field>
+        <field name="arch" type="xml">
+            <graph string="Reorder Planning Graph" type="bar">
+                <field name="product_id"/>
+                <field name="required_qty" type="measure"/>
+                <field name="suggested_qty" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_reorder_analysis" model="ir.actions.act_window">
+        <field name="name">Reorder Planning</field>
+        <field name="res_model">reorder.planning</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_id" ref="view_reorder_planning_tree"/>
+        <field name="context">{}</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Menu item -->
+      <menuitem id="menu_reorder_analysis_action" name="Analysis" parent="menu_reorder_planning_root" action="action_reorder_analysis"/>
+
+</odoo>

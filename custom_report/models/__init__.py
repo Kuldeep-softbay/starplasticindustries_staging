@@ -7,3 +7,5 @@ from . import rm_required_available_report
 from . import production_report
 from . import stock_picking
 from . import fg_work_order_wise_report
+from . import dispatch_delay_report_summery
+from . import dispatch_delay_report

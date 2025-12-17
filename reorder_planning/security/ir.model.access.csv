@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_reorder_planning,reorder.planning,model_reorder_planning,base.group_user,1,0,0,0
+reorder_planning.access_reorder_planning_wizard,access_reorder_planning_wizard,reorder_planning.model_reorder_planning_wizard,base.group_user,1,1,1,1
+

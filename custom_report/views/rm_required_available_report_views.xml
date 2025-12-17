@@ -6,19 +6,7 @@
         <field name="arch" type="xml">
             <form string="RM Required and Available Report">
                 <group>
-                    <group>
-                        <field name="date_from"/>
-                        <field name="date_to"/>
-                    </group>
-                    <group>
-                        <field name="partner_id"/>
-                        <field name="raw_type"/>
-                    </group>
-                    <group>
-                        <!-- you can uncomment location if you want filter by store -->
-                        <!-- <field name="location_id"/> -->
-                        <field name="product_id"/>
-                    </group>
+                    <field name="party_id"/>
                 </group>
                 <footer>
                     <button name="action_show_report"
@@ -39,17 +27,11 @@
         <field name="model">rm.required.available.report</field>
         <field name="arch" type="xml">
             <list string="RM Required and Available" create="false" edit="false" delete="false">
-                <field name="date"/>
-                <field name="particulars"/>
-                <field name="product_id"/>
-                <field name="batch"/>
-                <field name="grade"/>
-                <field name="vendor_id"/>
-                <field name="invoice_no"/>
-                <field name="received_qty"/>
-                <field name="pmemo_no"/>
-                <field name="issue_qty"/>
-                <field name="balance_qty"/>
+                <field name="product_id" string="Raw Material"/>
+                <field name="rm_required_qty"/>
+                <field name="location_id"/>
+                <field name="rm_available_qty"/>
+                <field name="difference_qty"/>
             </list>
         </field>
     </record>
@@ -60,13 +42,11 @@
         <field name="model">rm.required.available.report</field>
         <field name="arch" type="xml">
             <search string="RM Required and Available">
-                <field name="date"/>
                 <field name="product_id"/>
-                <field name="vendor_id"/>
-                <field name="grade"/>
+                <field name="location_id"/>
                 <group expand="0" string="Group By">
                     <filter name="groupby_product" string="Product" context="{'group_by': 'product_id'}"/>
-                    <filter name="groupby_vendor" string="Vendor" context="{'group_by': 'vendor_id'}"/>
+                    <filter name="groupby_vendor" string="Location" context="{'group_by': 'location_id'}"/>
                 </group>
             </search>
         </field>
