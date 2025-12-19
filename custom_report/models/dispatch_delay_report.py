@@ -11,7 +11,6 @@ class DispatchDelayReasonWizard(models.TransientModel):
         readonly=True
     )
 
-    reason = fields.Text(string='Delay Reason', required=True)
     delay_reason_id = fields.Many2one(
         'dispatch.delay.reason',
         string='Delay Reason',
@@ -23,7 +22,6 @@ class DispatchDelayReasonWizard(models.TransientModel):
         self.picking_id.write({
             'delay_acknowledged': True,
             'delay_reason_id': self.delay_reason_id.id,
-            'remarks': self.reason or self.delay_reason_id.name,
         })
         return {'type': 'ir.actions.act_window_close'}
 
