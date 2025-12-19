@@ -96,6 +96,11 @@
                    context="{'default_production_id': production_id, 'default_shift_id': id}"
                    views="[(list, ref('starplastic_work_center.view_work_center_hourly_entry_master_list'))]"/>
           </group>
+          <group string="Error Set">
+            <field name="unit_waight"/>
+            <field name="total_kg"/>
+            <field name="total_pcs"/>
+          </group>
         </sheet>
       </form>
     </field>

@@ -79,43 +79,123 @@ class WCShift(models.Model):
     _order = 'date desc, id desc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+
+    entry_ids = fields.One2many(
+        'work.center.hourly.entry',
+        'shift_id',
+        string='Hourly Entries'
+    )
+
+    total_produced_qty = fields.Float(
+        string='Total Produced Qty',
+        compute='_compute_total_produced_qty',
+        store=True
+    )
+
+    # =========================
+    # COMPUTE
+    # =========================
+    @api.depends('entry_ids.produced_qty_number')
+    def _compute_total_produced_qty(self):
+        for shift in self:
+            shift.total_produced_qty = sum(
+                shift.entry_ids.mapped('produced_qty_number')
+            )
+
     name = fields.Char(compute='_compute_name', store=True, tracking=True)
-    production_id = fields.Many2one('mrp.production', required=True, tracking=True, ondelete='cascade')
+    production_id = fields.Many2one(
+        'mrp.production', required=True, tracking=True, ondelete='cascade'
+    )
     date = fields.Date(required=True, tracking=True)
     template_id = fields.Many2one('wc.shift.template', required=True, tracking=True)
-    supervisor_one_id = fields.Many2one('res.users', string='Supervisor One', tracking=True)
-    supervisor_two_id = fields.Many2one('res.users', string='Supervisor Two', tracking=True)
 
-    # Setup fields
-    mold_id = fields.Many2one('product.product', string='Running Mold', tracking=True)
-    cavity = fields.Integer(string='Cavity', required=True, tracking=True)
-    cycle_time_sec = fields.Float(string='Cycle Time (sec)', required=True, tracking=True)
+    supervisor_one_id = fields.Many2one('res.users', tracking=True)
+    supervisor_two_id = fields.Many2one('res.users', tracking=True)
 
-    # Auto-target per hour from setup
-    hourly_target_qty = fields.Float(string='Hourly Target (units/hr)', compute='_compute_hourly_target', store=True)
-
-    # Links
-    entry_ids = fields.One2many('work.center.hourly.entry', 'shift_id', string='Hourly Entries')
-
-    # State (optional lifecycle for shift)
+    mold_id = fields.Many2one(
+        'product.product', string='Running Mold', tracking=True
+    )
     state = fields.Selection(
         [('draft', 'Draft'), ('generated', 'Generated'), ('done', 'Done')],
         default='draft', required=True, tracking=True
     )
 
+    cavity = fields.Integer(required=True, tracking=True)
+    cycle_time_sec = fields.Float(required=True, tracking=True)
+
+    # =========================
+    # WEIGHT / PCS FIELDS
+    # =========================
+
+    unit_waight = fields.Float(
+        string='Unit Weight (kg)',
+        tracking=True,
+        help="Weight of 1 piece in KG"
+    )
+
+    total_kg = fields.Float(
+        string='Total KG',
+        tracking=True
+    )
+
+    total_pcs = fields.Integer(
+        string='Total Pcs',
+        tracking=True
+    )
+   
+    hourly_target_qty = fields.Float(string='Hourly Target (units/hr)', compute='_compute_hourly_target', store=True)
+
+
+    # =========================
+    # ONCHANGE LOGIC
+    # =========================
+
+    @api.onchange('mold_id')
+    def _onchange_mold_id_set_unit_weight(self):
+        """Auto fetch unit weight from product"""
+        for rec in self:
+            if rec.mold_id:
+                # Use product weight (Odoo standard field)
+                rec.unit_waight = rec.mold_id.weight or 0.0
+
+    @api.onchange('total_kg', 'unit_waight')
+    def _onchange_total_kg(self):
+        """If KG is entered → calculate PCS"""
+        for rec in self:
+            if rec.total_kg and rec.unit_waight:
+                rec.total_pcs = int(rec.total_kg / rec.unit_waight)
+
+    @api.onchange('total_pcs', 'unit_waight')
+    def _onchange_total_pcs(self):
+        """If PCS is entered → calculate KG"""
+        for rec in self:
+            if rec.total_pcs and rec.unit_waight:
+                rec.total_kg = rec.total_pcs * rec.unit_waight
+
+    # =========================
+    # DATA SAFETY
+    # =========================
+
+    @api.constrains('unit_waight')
+    def _check_unit_weight(self):
+        for rec in self:
+            if rec.unit_waight < 0:
+                raise ValidationError(_("Unit weight cannot be negative."))
+
+    # =========================
+    # OPTIONAL: NAME COMPUTE
+    # =========================
+
+    @api.depends('production_id', 'date')
+    def _compute_name(self):
+        for rec in self:
+            rec.name = f"{rec.production_id.name or ''} - {rec.date or ''}"
+
     _sql_constraints = [
-        # Prevent duplicate shift per MO+date+template
         ('uniq_mo_date_template', 'unique(production_id, date, template_id)',
          'A shift already exists for this MO, date, and template.')
     ]
-    total_produced_qty = fields.Float('Total Produced Quantity', compute='_compute_total_produced_qty', store=True)
-
-    @api.depends('entry_ids.produced_qty_number')
-    def _compute_total_produced_qty(self):
-        for rec in self:
-            rec.total_produced_qty = sum(rec.entry_ids.mapped('produced_qty_number'))
-
-
+   
 
     @api.depends('production_id', 'date', 'template_id')
     def _compute_name(self):

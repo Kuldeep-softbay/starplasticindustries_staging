@@ -36,6 +36,7 @@
         <form string="Acknowledge Dispatch Delay">
             <group>
                 <field name="picking_id"/>
+                <field name="delay_reason_id" required="1"/>
                 <field name="reason"/>
             </group>
             <footer>
@@ -50,4 +51,3 @@
     </field>
 </record>
 </odoo>
-

@@ -12,13 +12,18 @@ class DispatchDelayReasonWizard(models.TransientModel):
     )
 
     reason = fields.Text(string='Delay Reason', required=True)
+    delay_reason_id = fields.Many2one(
+        'dispatch.delay.reason',
+        string='Delay Reason',
+        required=True
+    )
 
     def action_confirm(self):
         self.ensure_one()
         self.picking_id.write({
             'delay_acknowledged': True,
-            'delay_reason': self.reason,
-            'remarks': self.reason,
+            'delay_reason_id': self.delay_reason_id.id,
+            'remarks': self.reason or self.delay_reason_id.name,
         })
         return {'type': 'ir.actions.act_window_close'}
 
