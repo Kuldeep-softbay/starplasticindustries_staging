@@ -23,15 +23,4 @@
 
         </field>
     </record>
-    <record id="res_partner_form_inherit_package_type" model="ir.ui.view">
-    <field name="name">res.partner.form.inherit.package.type</field>
-    <field name="model">res.partner</field>
-    <field name="inherit_id" ref="base.view_partner_form"/>
-    <field name="arch" type="xml">
-        <xpath expr="//page[@name='sales_purchases']//group" position="inside">
-            <field name="package_type_id"/>
-        </xpath>
-    </field>
-</record>
-
 </odoo>
