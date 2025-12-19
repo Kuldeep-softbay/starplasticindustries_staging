@@ -4,7 +4,7 @@ class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
     product_insert = fields.Char("Product Insert")
-    default_code = fields.Char("Product Code")
+    product_code = fields.Char("Product Code")
     raw_material = fields.Char("Raw Material")
     mould_name = fields.Char("Mould Name")
     difference = fields.Float("Difference")

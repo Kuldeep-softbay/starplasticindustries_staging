@@ -87,7 +87,7 @@ class WorkCenterHourlyEntry(models.Model):
     )
 
     produced_weight_kg = fields.Float('Produced kg', tracking=True)
-    produced_qty_number = fields.Float('Produced Nos', tracking=True, compute='_compute_produced_qty_number', store=True)
+    produced_qty_number = fields.Float('Produced Nos', tracking=True)
     reject_weight_kg = fields.Float('Rejection kg', tracking=True)
     reject_qty_number = fields.Float('Rejection Nos', tracking=True)
     rejection_reason = fields.Char('Rejection Reason', tracking=True)
@@ -101,13 +101,6 @@ class WorkCenterHourlyEntry(models.Model):
         required=True,
         tracking=True,
     )
-    @api.depends('produced_weight_kg', 'unit_weight')
-    def _compute_produced_qty_number(self):
-        for rec in self:
-            if rec.unit_weight:
-                rec.produced_qty_number = rec.produced_weight_kg / rec.unit_weight
-            else:
-                rec.produced_qty_number = 0.0
 
     @api.constrains('shut_down', 'reason_line_ids')
     def _check_downtime_requirements(self):
