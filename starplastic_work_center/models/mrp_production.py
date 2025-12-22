@@ -1,4 +1,5 @@
 from odoo import api, fields, models, _
+import re
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -9,6 +10,43 @@ class MrpProduction(models.Model):
     expected_delivery_date = fields.Date('Expected Delivery Date')
     warehouse_verified = fields.Boolean('Warehouse Verified', default=False)
     hourly_entry_count = fields.Integer(string='Hourly Entries', compute='_compute_hourly_entry_count')
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Customer Order',
+        compute='_compute_customer_order',
+        store=True
+    )
+
+    sale_order_qty = fields.Float(
+        string='C.O Quantity',
+        compute='_compute_customer_order',
+        store=True
+    )
+
+    @api.depends('origin', 'product_id')
+    def _compute_customer_order(self):
+        for mo in self:
+            so = False
+            qty = 0.0
+
+            if mo.origin:
+                match = re.search(r'\bS\d+\b', mo.origin)
+                if match:
+                    so_name = match.group(0)
+                    so = self.env['sale.order'].search(
+                        [('name', '=', so_name)],
+                        limit=1
+                    )
+
+                    if so:
+                        solines = so.order_line.filtered(
+                            lambda l: l.product_id == mo.product_id
+                        )
+                        qty = sum(solines.mapped('product_uom_qty'))
+
+            mo.sale_order_id = so
+            mo.sale_order_qty = qty
+
 
     def action_view_shifts(self):
         self.ensure_one()
