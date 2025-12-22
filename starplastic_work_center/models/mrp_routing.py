@@ -14,6 +14,7 @@ class MrpRoutingWorkcenter(models.Model):
 
     cavity = fields.Integer(string="Cavity", default=1, help="Number of cavities")
     standard_cycle_time = fields.Float(string="Std Cycle Time")
+    cycle_time = fields.Float(string="Cycle Time")
     standard_cycle_time_hourly = fields.Float(
         string="Std Cycle Time band for hourly entery")
     standard_production_per_hour = fields.Float(
