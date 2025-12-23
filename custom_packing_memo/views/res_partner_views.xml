@@ -13,9 +13,12 @@
         <xpath expr="//page[@name='internal_notes']" position="attributes">
                 <attribute name="string">Packing Details</attribute>
         </xpath>
+<<<<<<< HEAD
         <xpath expr="//field[@name='function']" position="before">
                 <field name="contact_person"/>
         </xpath>
+=======
+>>>>>>> 9cd09a01112b87063b2e77ca6a3bb2bc11f000a5
         </field>
     </record>
 </odoo>
