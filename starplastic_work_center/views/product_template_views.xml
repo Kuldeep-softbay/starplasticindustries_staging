@@ -7,6 +7,24 @@
         <xpath expr="//field[@name='type']" position="attributes">
             <attribute name="invisible">1</attribute>
         </xpath>
+        <!-- <xpath expr="//field[@name='taxes_id']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+        <xpath expr="//field[@name='avatax_category_id']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+        <xpath expr="//field[@name='supplier_taxes_id']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+        <xpath expr="//field[@name='company_id']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+        <xpath expr="//field[@name='invoice_policy']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+        <xpath expr="//field[@name='standard_price']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath> -->
         <xpath expr="//div[@name='weight']" position="after">
 
                 <label for="weight_gm"

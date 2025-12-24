@@ -10,6 +10,7 @@ class MrpProduction(models.Model):
     expected_delivery_date = fields.Date('Expected Delivery Date')
     warehouse_verified = fields.Boolean('Warehouse Verified', default=False)
     hourly_entry_count = fields.Integer(string='Hourly Entries', compute='_compute_hourly_entry_count')
+
     sale_order_id = fields.Many2one(
         'sale.order',
         string='Customer Order',
@@ -30,6 +31,7 @@ class MrpProduction(models.Model):
             qty = 0.0
 
             if mo.origin:
+                # 🔹 Extract SO number like S00004 from origin
                 match = re.search(r'\bS\d+\b', mo.origin)
                 if match:
                     so_name = match.group(0)
@@ -39,6 +41,7 @@ class MrpProduction(models.Model):
                     )
 
                     if so:
+                        # 🔹 Get quantity for the same product
                         solines = so.order_line.filtered(
                             lambda l: l.product_id == mo.product_id
                         )

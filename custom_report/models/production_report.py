@@ -48,11 +48,11 @@ class ProductionReportWizard(models.TransientModel):
         string='Batch Number',
         domain="[('production_id.product_id', '=', product_id)]",
         help="Select Batch Number from Work Orders",
-        required=True
     )
     batch_number = fields.Char(
         related='workorder_id.batch_number',
         string='Batch Number',
+        # readonly=True
     )
 
     def action_show_report(self):

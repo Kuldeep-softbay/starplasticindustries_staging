@@ -13,7 +13,7 @@
         <xpath expr="//page[@name='internal_notes']" position="attributes">
                 <attribute name="string">Packing Details</attribute>
         </xpath>
-        <xpath expr="//field[@name='phone']" position="before">
+        <xpath expr="//field[@name='function']" position="before">
                 <field name="contact_person"/>
         </xpath>
         </field>
