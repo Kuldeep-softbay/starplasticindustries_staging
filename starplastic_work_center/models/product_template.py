@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
@@ -26,18 +26,3 @@ class ProductTemplate(models.Model):
     rm_formulation = fields.Text("RM Formulation")
     packing_method = fields.Char("Packing Method")
     batch_number = fields.Char("Batch Number")
-    weight_gm = fields.Float(
-        string="Weight (gm)",
-        digits=(16, 2)
-    )
-
-    weight_gm_uom = fields.Char(
-        string="",
-        default="gm",
-        readonly=True
-    )
-
-    @api.onchange('weight_gm')
-    def _onchange_weight_gm(self):
-        for rec in self:
-            rec.weight = (rec.weight_gm or 0.0) / 1000

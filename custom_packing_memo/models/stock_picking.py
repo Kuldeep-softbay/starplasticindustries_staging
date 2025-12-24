@@ -48,19 +48,21 @@ class StockPicking(models.Model):
             if picking.internal_batch_number:
                 continue
 
-            raw_material_code = 'RM00'
-
+            raw_material_code = False
             if picking.move_ids_without_package:
                 first_move = picking.move_ids_without_package[0]
-                product = first_move.product_id
+                if first_move.product_id and first_move.product_id.default_code:
+                    raw_material_code = first_move.product_id.default_code.strip()
 
-                if product and product.default_code:
-                    raw_material_code = product.default_code.strip()[:4]
+            raw_material_code = raw_material_code or 'RM00'
 
+            # two-digit year
             year = datetime.now().strftime('%y')
 
+            # prefix without separators to match requested format (e.g. R00125)
             prefix = f"{raw_material_code}{year}"
 
+            # search last record with same prefix and extract last sequence
             last = self.search(
                 [('internal_batch_number', 'ilike', f"{prefix}%")],
                 order='id desc',
@@ -68,12 +70,13 @@ class StockPicking(models.Model):
             )
 
             if last and last.internal_batch_number:
+                # assume last 5 chars are numeric sequence
                 try:
-                    last_seq = int(last.internal_batch_number[-4:])
-                    next_seq = str(last_seq + 1).zfill(4)
-                except ValueError:
-                    next_seq = '0001'
+                    last_seq = int(last.internal_batch_number[-5:])
+                    next_seq = str(last_seq + 1).zfill(5)
+                except Exception:
+                    next_seq = '00001'
             else:
-                next_seq = '0001'
+                next_seq = '00001'
 
             picking.internal_batch_number = f"{prefix}{next_seq}"

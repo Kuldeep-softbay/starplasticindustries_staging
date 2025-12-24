@@ -13,7 +13,3 @@ class ResCompany(models.Model):
     header_effective_date = fields.Date(string="Header Effective Date")
     header_review_date = fields.Date(string="Header Review Date")
 
-class ResPartner(models.Model):
-    _inherit = 'res.partner'
-
-    contact_person = fields.Char(string="Contact Person")

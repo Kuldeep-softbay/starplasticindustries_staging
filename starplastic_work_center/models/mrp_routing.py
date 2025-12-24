@@ -14,39 +14,12 @@ class MrpRoutingWorkcenter(models.Model):
 
     cavity = fields.Integer(string="Cavity", default=1, help="Number of cavities")
     standard_cycle_time = fields.Float(string="Std Cycle Time")
-    cycle_time = fields.Float(string="Cycle Time")
     standard_cycle_time_hourly = fields.Float(
         string="Std Cycle Time band for hourly entery")
     standard_production_per_hour = fields.Float(
         string="Std Production per Hour")
     cycle_time_tolerance = fields.Float(string="Cycle Time Tolerance (%)")
-    cycle_time_manual_seconds = fields.Float(
-        string="Cycle Time Manual (Seconds)"
-    )
 
-    time_cycle_manual = fields.Float(
-        string="Cycle Time Manual (Minutes)",
-        compute="_compute_time_cycle_manual",
-        store=True
-    )
-
-    @api.depends('cycle_time_manual_seconds')
-    def _compute_time_cycle_manual(self):
-        for rec in self:
-            rec.time_cycle_manual = (
-                rec.cycle_time_manual_seconds / 60.0
-                if rec.cycle_time_manual_seconds > 0
-                else 0.0
-            )
-
-    @api.onchange('cycle_time_manual_seconds')
-    def _onchange_cycle_time_manual_seconds(self):
-        self.time_cycle_manual = (
-            self.cycle_time_manual_seconds / 60.0
-            if self.cycle_time_manual_seconds > 0
-            else 0.0
-        )
-    
     @api.constrains('cavity', 'standard_cycle_time', 'cycle_time_tolerance')
     def _check_positive_values(self):
         for rec in self:
