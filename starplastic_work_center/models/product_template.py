@@ -26,6 +26,7 @@ class ProductTemplate(models.Model):
     rm_formulation = fields.Text("RM Formulation")
     packing_method = fields.Char("Packing Method")
     batch_number = fields.Char("Batch Number")
+    
     weight_gm = fields.Float(
         string="Weight (gm)",
         digits=(16, 2)
@@ -37,7 +38,18 @@ class ProductTemplate(models.Model):
         readonly=True
     )
 
+    weight = fields.Float(
+    compute="_compute_weight_from_gm",
+    store=True,
+    digits=(16, 4)
+    )
+
+
+    @api.depends('weight_gm')
+    def _compute_weight_from_gm(self):
+        for rec in self:
+            rec.weight = (rec.weight_gm or 0.0) / 1000.0
+
     @api.onchange('weight_gm')
     def _onchange_weight_gm(self):
-        for rec in self:
-            rec.weight = (rec.weight_gm or 0.0) / 1000
+        self.weight = (self.weight_gm or 0.0) / 1000.0

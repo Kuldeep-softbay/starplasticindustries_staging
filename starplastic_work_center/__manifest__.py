@@ -20,6 +20,7 @@
         # 'report/report_action.xml',
         # 'report/work_order_report.xml',
         'views/res_company_views.xml',
+        'views/sale_order_line_views.xml',
     ],
     'installable': True,
     'application': False,
