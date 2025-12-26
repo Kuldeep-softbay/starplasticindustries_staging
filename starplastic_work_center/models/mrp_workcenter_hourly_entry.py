@@ -77,9 +77,6 @@ class WorkCenterHourlyEntry(models.Model):
     operator_two_id = fields.Many2one('res.users', string='Operator Two', tracking=True)
 
     shut_down = fields.Boolean(string='Shut Down', default=False, tracking=True)
-
-    unit_weight = fields.Float('Unit Weight')
-
     reason_line_ids = fields.One2many(
         'work.center.hourly.entry.reason.line',
         'hourly_entry_id',
@@ -89,7 +86,7 @@ class WorkCenterHourlyEntry(models.Model):
     produced_weight_kg = fields.Float('Produced kg', tracking=True)
     produced_qty_number = fields.Float('Produced Nos', tracking=True, compute='_compute_produced_qty_number', store=True)
     reject_weight_kg = fields.Float('Rejection kg', tracking=True)
-    reject_qty_number = fields.Float('Rejection Nos', tracking=True)
+    reject_qty_number = fields.Float('Rejection Nos', tracking=True, compute='_compute_reject_qty_number', store=True)
     rejection_reason = fields.Char('Rejection Reason', tracking=True)
     actual_cycle_time = fields.Float('Actual Cycle Time (sec)', tracking=True)
     qc_check = fields.Boolean('Product Quality Check', tracking=True)
@@ -101,6 +98,29 @@ class WorkCenterHourlyEntry(models.Model):
         required=True,
         tracking=True,
     )
+
+    weight_gm = fields.Float(
+        string="Weight (gm)",
+        digits=(16, 2)
+    )
+
+    unit_weight = fields.Float(
+        compute="_compute_unit_weight",
+        store=True,
+        string="Unit Weight (kg)",
+        digits=(16, 4)
+        )
+
+
+    @api.depends('weight_gm')
+    def _compute_unit_weight(self):
+        for rec in self:
+            rec.unit_weight = (rec.weight_gm or 0.0) / 1000.0
+
+    @api.onchange('weight_gm')
+    def _onchange_unit_weight(self):
+        self.unit_weight = (self.weight_gm or 0.0) / 1000.0
+
     @api.depends('produced_weight_kg', 'unit_weight')
     def _compute_produced_qty_number(self):
         for rec in self:
@@ -108,6 +128,14 @@ class WorkCenterHourlyEntry(models.Model):
                 rec.produced_qty_number = rec.produced_weight_kg / rec.unit_weight
             else:
                 rec.produced_qty_number = 0.0
+
+    @api.depends('reject_weight_kg', 'unit_weight')
+    def _compute_reject_qty_number(self):
+        for rec in self:
+            if rec.unit_weight:
+                rec.reject_qty_number = rec.reject_weight_kg / rec.unit_weight
+            else:
+                rec.reject_qty_number = 0.0
 
     @api.constrains('shut_down', 'reason_line_ids')
     def _check_downtime_requirements(self):

@@ -8,92 +8,69 @@ class SaleOrder(models.Model):
     exp_packing_date = fields.Date(string="Expected Packing Date")
     actual_packing_date = fields.Date(string="Actual Packing Date")
     remark = fields.Char(string="Remark")
-    packing_details = fields.Text(string="Packing Details")
+    packing_details = fields.Html(
+        string="Packing Details",
+        sanitize=True
+    )
+    @api.onchange('partner_id')
+    def _onchange_partner_id_set_packing_details(self):
+        """
+        When customer is selected, populate Packing Details
+        from Customer Internal Notes (comment).
+        """
+        for order in self:
+            if order.partner_id and order.partner_id.comment:
+                order.packing_details = order.partner_id.comment
+            else:
+                order.packing_details = False
 
     def get_packing_memo_payload(self):
-        """Build a data payload for the QWeb template based on sale order lines."""
         self.ensure_one()
+
         details = []
         totals = defaultdict(float)
 
-        for line in self.order_line:
-            qty = line.product_uom_qty
+        co_numbers = self.order_line.mapped("co_number")
+        co_numbers = [c for c in co_numbers if c]
+
+        if not co_numbers:
+            return {
+                "details": [],
+                "summary": [],
+            }
+
+        workorders = self.env["mrp.workorder"].search([
+            ("customer_po_number", "in", co_numbers)
+        ])
+
+        for wo in workorders:
+            batch_number = wo.batch_number or ""
+            qty = wo.qty_production or wo.production_id.product_qty
+            product = wo.product_id or wo.production_id.product_id
+
+            # ---------- DETAILS ----------
             details.append({
-                "batch_number": line.product_id.batch_number or "",
-                "product_display_name": line.product_id.display_name,
-                "default_code": line.product_id.default_code or "",
+                "batch_number": batch_number,
+                "product_display_name": product.display_name,
+                "default_code": product.default_code or "",
                 "qty": qty,
             })
-            totals[line.product_id.id] += qty
+
+            # ---------- SUMMARY KEY = (product, batch) ----------
+            totals[(product.id, batch_number)] += qty
 
         summary = []
-        products = self.env["product.product"].browse(list(totals.keys()))
-        for prod in products:
-            summary.append({
-                "product_display_name": prod.display_name,
-                "default_code": prod.default_code or "",
-                "qty": float(totals[prod.id]),
-            })
+        for (product_id, batch_number), qty in totals.items():
+            product = self.env["product.product"].browse(product_id)
 
-        details.sort(key=lambda d: d["product_display_name"])
-        summary.sort(key=lambda s: s["product_display_name"])
+            summary.append({
+                "batch_number": batch_number,
+                "product_display_name": product.display_name,
+                "default_code": product.default_code or "",
+                "qty": qty,
+            })
 
         return {
             "details": details,
             "summary": summary,
         }
-    
-    workorder_count = fields.Integer(
-        string='Work Orders',
-        compute='_compute_workorder_count'
-    )
-
-    # def _compute_workorder_count(self):
-    #     for order in self:
-    #         order.workorder_count = self.env['mrp.workorder'].search_count([
-    #             ('production_id.origin', '=', order.name)
-    #         ])
-
-    def _compute_workorder_count(self):
-        data = self.env['mrp.workorder']._read_group([
-            ('operation_id', 'in', self.ids),
-            ('state', '=', 'done')], ['operation_id'], ['__count'])
-        count_data = {operation.id: count for operation, count in data}
-        for operation in self:
-            operation.workorder_count = count_data.get(operation.id, 0)
-
-    def action_view_workorders(self):
-        self.ensure_one()
-        workorders = self.env['mrp.workorder'].search([
-            ('production_id.origin', '=', self.name)
-        ])
-
-        action_ref = False
-        try:
-            action_ref = self.env.ref('mrp.mrp_workorder_todo', False)
-        except Exception:
-            action_ref = False
-
-        if action_ref:
-            action = action_ref.read()[0]
-        else:
-            act = self.env['ir.actions.act_window'].search([
-                ('res_model', '=', 'mrp.workorder')
-            ], limit=1)
-            if act:
-                action = act.read()[0]
-            else:
-                action = {
-                    'type': 'ir.actions.act_window',
-                    'name': _('Work Orders'),
-                    'res_model': 'mrp.workorder',
-                    'view_mode': 'tree,form',
-                }
-
-        if len(workorders) == 1:
-            action['views'] = [(False, 'form')]
-            action['res_id'] = workorders.id
-        else:
-            action['domain'] = [('id', 'in', workorders.ids)]
-
-        return action

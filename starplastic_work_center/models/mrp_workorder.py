@@ -1,4 +1,6 @@
 from odoo import api, models, fields
+from odoo.exceptions import ValidationError
+import re
 
 class MrpWorkorder(models.Model):
     _inherit = 'mrp.workorder'
@@ -10,8 +12,6 @@ class MrpWorkorder(models.Model):
     )
     batch_number = fields.Char('Batch Number')
     expected_delivery_date = fields.Datetime('Expected Delivery Date')
-    customer_po_number = fields.Char('CO Number')
-    customer_order_quantity = fields.Float('CO Quantity')
     actual_delivery_date = fields.Datetime('Actual Delivery Date')
     remark = fields.Text('Remark')
     produced_quantity = fields.Float('Produced Quantity')
@@ -19,6 +19,40 @@ class MrpWorkorder(models.Model):
     planned_start_date = fields.Datetime('Planned Start Date')
     planned_end_date = fields.Datetime('Planned End Date')
     creation_date = fields.Datetime('W.O Date')
+    customer_order_quantity = fields.Float(
+        string='CO Quantity',
+        compute='_compute_customer_order_qty',
+        store=True
+    )
+    customer_po_number = fields.Char(
+        string='C.O Number',
+        related='production_id.customer_po_number',
+        store=True,
+        readonly=True
+    )
+
+    @api.depends('production_id.origin', 'product_id')
+    def _compute_customer_order_qty(self):
+        for wo in self:
+            qty = 0.0
+
+            if wo.production_id and wo.production_id.origin:
+                match = re.search(r'\bS\d+\b', wo.production_id.origin)
+                if match:
+                    so_name = match.group(0)
+
+                    so = self.env['sale.order'].search(
+                        [('name', '=', so_name)],
+                        limit=1
+                    )
+
+                    if so:
+                        solines = so.order_line.filtered(
+                            lambda l: l.product_id == wo.product_id
+                        )
+                        qty = sum(solines.mapped('product_uom_qty'))
+
+            wo.customer_order_quantity = qty
 
     @api.model
     def create(self, vals):

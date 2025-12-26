@@ -4,7 +4,7 @@
     <!-- ================= REPORT ================= -->
     <template id="report_packing_memo">
         <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="o">
+                <t t-foreach="docs" t-as="o">
                 <t t-call="web.basic_layout">
 
                     <t t-set="company" t-value="o.company_id or env.company"/>
@@ -156,30 +156,33 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-foreach="summary" t-as="s">
-                                <tr>
-                                    <td class="text-right">
-                                        <t t-esc="s_index + 1"/>
-                                    </td>
-                                    <td/>
-                                    <td>
-                                        <t t-esc="s['product_display_name']"/>
-                                        <t t-if="s['default_code']">
-                                            - <t t-esc="s['default_code']"/>
-                                        </t>
-                                    </td>
-                                    <td/>
-                                    <td class="text-right">
-                                        <t t-esc="s['qty']"/>
-                                    </td>
-                                </tr>
-                            </t>
-                            <t t-if="not summary">
-                                <tr>
-                                    <td colspan="5">No items</td>
-                                </tr>
-                            </t>
-                        </tbody>
+                        <t t-foreach="summary" t-as="s">
+                            <tr>
+                                <td class="text-right">
+                                    <t t-esc="s_index + 1"/>
+                                </td>
+                                <td>
+                                    <t t-esc="s['batch_number']"/>
+                                </td>
+                                <td>
+                                    <t t-esc="s['product_display_name']"/>
+                                    <t t-if="s['default_code']">
+                                        - <t t-esc="s['default_code']"/>
+                                    </t>
+                                </td>
+                                <td/>
+                                <td class="text-right">
+                                    <t t-esc="s['qty']"/>
+                                </td>
+                            </tr>
+                        </t>
+
+                        <t t-if="not summary">
+                            <tr>
+                                <td colspan="5">No items</td>
+                            </tr>
+                        </t>
+                    </tbody>
                     </table>
 
                     <!-- ================= FOOTER (UNCHANGED) ================= -->

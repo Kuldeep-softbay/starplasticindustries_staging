@@ -11,15 +11,14 @@ class MrpProduction(models.Model):
     warehouse_verified = fields.Boolean('Warehouse Verified', default=False)
     hourly_entry_count = fields.Integer(string='Hourly Entries', compute='_compute_hourly_entry_count')
 
-    sale_order_id = fields.Many2one(
-        'sale.order',
-        string='Customer Order',
+    sale_order_qty = fields.Float(
+        string='C.O Quantity',
         compute='_compute_customer_order',
         store=True
     )
 
-    sale_order_qty = fields.Float(
-        string='C.O Quantity',
+    customer_po_number = fields.Char(
+        string='C.O Number',
         compute='_compute_customer_order',
         store=True
     )
@@ -27,29 +26,25 @@ class MrpProduction(models.Model):
     @api.depends('origin', 'product_id')
     def _compute_customer_order(self):
         for mo in self:
-            so = False
             qty = 0.0
+            po_number = False
 
             if mo.origin:
-                # 🔹 Extract SO number like S00004 from origin
                 match = re.search(r'\bS\d+\b', mo.origin)
                 if match:
-                    so_name = match.group(0)
                     so = self.env['sale.order'].search(
-                        [('name', '=', so_name)],
+                        [('name', '=', match.group(0))],
                         limit=1
                     )
-
                     if so:
-                        # 🔹 Get quantity for the same product
                         solines = so.order_line.filtered(
                             lambda l: l.product_id == mo.product_id
                         )
                         qty = sum(solines.mapped('product_uom_qty'))
-
-            mo.sale_order_id = so
+                        if solines:
+                            po_number = solines[0].co_number
             mo.sale_order_qty = qty
-
+            mo.customer_po_number = po_number
 
     def action_view_shifts(self):
         self.ensure_one()

@@ -66,6 +66,7 @@
               <field name="operator_one_id"/>
               <field name="operator_two_id"/>
               <field name="shut_down"/>
+              <field name="weight_gm"/>
               <field name="unit_weight"/>
               <field name="rejection_reason"/>
             </group>

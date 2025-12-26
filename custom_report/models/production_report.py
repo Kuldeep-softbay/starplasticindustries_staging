@@ -52,7 +52,7 @@ class ProductionReportWizard(models.TransientModel):
     batch_number = fields.Char(
         related='workorder_id.batch_number',
         string='Batch Number',
-        # readonly=True
+        readonly=True
     )
 
     def action_show_report(self):
