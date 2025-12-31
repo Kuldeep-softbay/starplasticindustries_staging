@@ -10,7 +10,6 @@ class MrpProduction(models.Model):
     expected_delivery_date = fields.Date('Expected Delivery Date')
     warehouse_verified = fields.Boolean('Warehouse Verified', default=False)
     hourly_entry_count = fields.Integer(string='Hourly Entries', compute='_compute_hourly_entry_count')
-
     sale_order_qty = fields.Float(
         string='C.O Quantity',
         compute='_compute_customer_order',
@@ -22,6 +21,39 @@ class MrpProduction(models.Model):
         compute='_compute_customer_order',
         store=True
     )
+
+    unit_weight = fields.Float(string="Unit Weight")
+
+    @api.onchange('product_id')
+    def _onchange_product_set_unit_weight(self):
+        if self.product_id:
+            self.unit_weight = self.product_id.product_tmpl_id.weight or 0.0
+
+    total_kg = fields.Float(string="Total KG")
+    total_pcs = fields.Integer(
+        string="Total PCS",
+        compute="_compute_total_pcs",
+        store=True
+    )
+
+    # -------------------------
+    # Compute Unit Weight from Product
+    # -------------------------
+    @api.depends('product_id')
+    def _compute_unit_weight(self):
+        for rec in self:
+            rec.unit_weight = rec.product_id.product_tmpl_id.weight or 0.0
+
+    # -------------------------
+    # Compute Total PCS
+    # -------------------------
+    @api.depends('total_kg', 'unit_weight')
+    def _compute_total_pcs(self):
+        for rec in self:
+            if rec.unit_weight > 0:
+                rec.total_pcs = int(rec.total_kg / rec.unit_weight)
+            else:
+                rec.total_pcs = 0
 
     @api.depends('origin', 'product_id')
     def _compute_customer_order(self):

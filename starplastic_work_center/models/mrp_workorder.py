@@ -30,6 +30,23 @@ class MrpWorkorder(models.Model):
         store=True,
         readonly=True
     )
+    @api.depends(
+        "qty_production",
+        "operation_id",
+        "operation_id.time_cycle_manual",
+        "operation_id.cavity",
+    )
+    def _compute_duration_expected(self):
+        for wo in self:
+            duration = 0.0
+
+            operation = wo.operation_id
+            qty = wo.qty_production or wo.production_id.product_qty
+
+            if operation and operation.time_cycle_manual:
+                duration = operation.compute_operation_duration(qty)
+
+            wo.duration_expected = duration
 
     @api.depends('production_id.origin', 'product_id')
     def _compute_customer_order_qty(self):

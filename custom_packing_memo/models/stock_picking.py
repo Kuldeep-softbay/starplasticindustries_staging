@@ -39,6 +39,23 @@ class StockPicking(models.Model):
         ('other', 'Other')
     ], string='Removal Type', default='normal')
 
+    total_product_qty = fields.Float(
+    string='Total Quantity',
+    compute='_compute_total_product_qty',
+    readonly=True)
+    actual_dispatch_date = fields.Date(
+        string='Actual Despatch Date',
+        help="The date when the picking was completed.")
+    exp_dis_date = fields.Date(
+        string="Expected Dispatch Date",
+        tracking=True,
+    )
+
+    @api.depends('move_ids.product_qty')
+    def _compute_total_product_qty(self):
+        for picking in self:
+            picking.total_product_qty = sum(picking.move_ids.mapped('product_qty'))
+
     @api.depends(
         'move_ids_without_package.product_id',
         'move_ids_without_package.product_id.default_code'

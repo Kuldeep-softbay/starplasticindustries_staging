@@ -96,7 +96,8 @@ class RmRealStoreBookWizard(models.TransientModel):
             domain.append(('product_id', '=', self.product_id.id))
 
         if self.party_id:
-            domain.append(('partner_id', '=', self.party_id.id))
+            # use the custom party field on moves
+            domain.append(('party_id', '=', self.party_id.id))
 
         if self.location_id:
             domain.extend([
@@ -120,7 +121,8 @@ class RmRealStoreBookWizard(models.TransientModel):
             domain.append(('product_id', '=', self.product_id.id))
 
         if self.party_id:
-            domain.append(('partner_id', '=', self.party_id.id))
+            # use the custom party field on moves
+            domain.append(('party_id', '=', self.party_id.id))
 
         if self.location_id:
             domain.extend([

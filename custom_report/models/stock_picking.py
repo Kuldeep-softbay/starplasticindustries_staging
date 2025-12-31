@@ -28,23 +28,14 @@ class StockPicking(models.Model):
         store=True,
         readonly=True,
     )
-    # new actual dispatch date (date_done when validated; fallback to date)
-    # dispatch_date = fields.Datetime(
-    #     string='Dispatch Date',
-    #     compute='_compute_dispatch_date',
-    #     store=True,
-    #     help="Actual dispatch/completion date (date_done if available, otherwise date)",
-    # )
     dispatch_date = fields.Date(
         string='Dispatch Date',
         compute='_compute_dispatch_date',
         store=True
     )
-    # delay_reason = fields.Char(
-    #     string='Reason',
-    #     compute='_compute_delay_reason',
-    #     store=True,
-    # )
+    actual_dispatch_date = fields.Date(
+        string='Actual Despatch Date',
+        help="The date when the picking was completed.")
 
     @api.depends('move_ids.product_uom_qty', 'move_line_ids.qty_done')
     def _compute_total_qty(self):
@@ -56,11 +47,6 @@ class StockPicking(models.Model):
                 qty = sum(pick.move_ids.mapped('product_uom_qty'))
             pick.total_qty = float(qty or 0.0)
 
-    # @api.depends('date_done', 'date')
-    # def _compute_dispatch_date(self):
-    #     for pick in self:
-    #         pick.dispatch_date = pick.date_done or pick.date or False
-
     @api.depends('state', 'date_done')
     def _compute_dispatch_date(self):
         for rec in self:
@@ -68,8 +54,3 @@ class StockPicking(models.Model):
                 rec.date_done.date()
                 if rec.state == 'done' and rec.date_done else False
             )
-
-    # @api.depends('note')
-    # def _compute_delay_reason(self):
-    #     for pick in self:
-    #         pick.delay_reason = pick.note or ''

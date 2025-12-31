@@ -1,59 +1,94 @@
-from odoo import api, fields, models
-from odoo import tools
-from datetime import timedelta
+from odoo import models, fields, tools
 
-class PurchaseReport(models.Model):
-    _inherit = "purchase.report"
 
-    opening_stock = fields.Float(string="Opening Stock", compute="_compute_stock_fields")
-    purchase_qty = fields.Float(string="Purchase", compute="_compute_stock_fields")
-    issue_qty = fields.Float(string="Issue", compute="_compute_stock_fields")
-    closing_stock = fields.Float(string="Closing Stock", compute="_compute_stock_fields")
+class PurchaseMonthlyReport(models.Model):
+    _name = 'purchase.monthly.report'
+    _description = 'Purchase Monthly Stock Report'
+    _auto = False
+    _rec_name = 'product_tmpl_id'
 
-    @api.depends("product_id", "qty_ordered", "company_id", "date_order")
-    def _compute_stock_fields(self):
-        StockMove = self.env["stock.move"].sudo()
-        for rec in self:
-            purchase = rec.qty_ordered or 0.0
-            current_on_hand = 0.0
-            if rec.product_id:
-                ctx = {}
-                if rec.company_id:
-                    ctx["force_company"] = rec.company_id.id
-                current_on_hand = rec.product_id.with_context(**ctx).qty_available or 0.0
+    product_tmpl_id = fields.Many2one(
+        'product.template',
+        string='Product',
+        readonly=True
+    )
 
-            opening = max(0.0, current_on_hand - purchase)
+    opening_stock = fields.Float(readonly=True)
+    purchase_qty = fields.Float(readonly=True)
+    issue_qty = fields.Float(readonly=True)
+    closing_stock = fields.Float(readonly=True)
 
-            issue = 0.0
-            if rec.product_id:
-                if getattr(rec, "date_order", False):
-                    start_dt = rec.date_order
-                else:
-                    start_dt = fields.Datetime.now() - timedelta(days=30)
-                start_date = fields.Datetime.to_string(start_dt)
-                end_date = fields.Datetime.to_string(fields.Datetime.now())
+    month = fields.Date(string='Month', readonly=True)
 
-                move_domain = [
-                    ('state', '=', 'done'),
-                    ('product_id', '=', rec.product_id.id),
-                    ('date', '>=', start_date),
-                    ('date', '<=', end_date),
-                    ('location_id.usage', '=', 'internal'),
-                    ('location_dest_id.usage', '!=', 'internal'),
-                ]
-                moves = StockMove.search(move_domain)
-                total_out = 0.0
-                for m in moves:
-                    try:
-                        qty_in_prod_uom = m.product_uom._compute_quantity(m.product_uom_qty, rec.product_id.uom_id)
-                    except Exception:
-                        qty_in_prod_uom = m.product_uom_qty
-                    total_out += qty_in_prod_uom
-                issue = total_out
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
 
-            closing = max(0.0, current_on_hand - issue)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW purchase_monthly_report AS (
+                SELECT
+                    row_number() OVER () AS id,
+                    pt.id AS product_tmpl_id,
+                    date_trunc('month', sm.date) AS month,
 
-            rec.opening_stock = float(opening)
-            rec.purchase_qty = float(purchase)
-            rec.issue_qty = float(issue)
-            rec.closing_stock = float(closing)
+                    /* Opening Stock */
+                    SUM(
+                        CASE
+                            WHEN sm.date < date_trunc('month', sm.date)
+                            THEN sm.product_uom_qty *
+                                CASE
+                                    WHEN src.usage = 'internal' THEN -1
+                                    WHEN dest.usage = 'internal' THEN 1
+                                    ELSE 0
+                                END
+                            ELSE 0
+                        END
+                    ) AS opening_stock,
+
+                    /* Purchase Qty */
+                    SUM(
+                        CASE
+                            WHEN src.usage = 'supplier'
+                            AND dest.usage = 'internal'
+                            AND sm.date >= date_trunc('month', sm.date)
+                            AND sm.date < date_trunc('month', sm.date) + INTERVAL '1 month'
+                            THEN sm.product_uom_qty
+                            ELSE 0
+                        END
+                    ) AS purchase_qty,
+
+                    /* Issue Qty */
+                    SUM(
+                        CASE
+                            WHEN src.usage = 'internal'
+                            AND dest.usage != 'internal'
+                            AND sm.date >= date_trunc('month', sm.date)
+                            AND sm.date < date_trunc('month', sm.date) + INTERVAL '1 month'
+                            THEN sm.product_uom_qty
+                            ELSE 0
+                        END
+                    ) AS issue_qty,
+
+                    /* Closing Stock */
+                    SUM(
+                        sm.product_uom_qty *
+                        CASE
+                            WHEN dest.usage = 'internal' THEN 1
+                            WHEN src.usage = 'internal' THEN -1
+                            ELSE 0
+                        END
+                    ) AS closing_stock
+
+                FROM stock_move sm
+                JOIN product_product pp ON sm.product_id = pp.id
+                JOIN product_template pt ON pp.product_tmpl_id = pt.id
+                JOIN stock_location src ON sm.location_id = src.id
+                JOIN stock_location dest ON sm.location_dest_id = dest.id
+
+                WHERE sm.state = 'done'
+                AND pt.purchase_ok = TRUE
+                AND pt.sale_ok = FALSE
+
+                GROUP BY pt.id, date_trunc('month', sm.date)
+            )
+        """)
+

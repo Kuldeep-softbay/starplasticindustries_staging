@@ -21,7 +21,6 @@ class DispatchDelayReason(models.Model):
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-
     is_dispatch_delayed = fields.Boolean(
         string='Dispatch Delayed',
         compute='_compute_dispatch_delay',
@@ -37,18 +36,31 @@ class StockPicking(models.Model):
         default=False
     )
 
+    delay_acknowledged_by = fields.Many2one(
+        'res.users',
+        string='Acknowledged By',
+        readonly=True
+    )
+
     delay_reason = fields.Text(
         string="Dispatch Delay Reason"
+    )
+    actual_dispatch_date = fields.Date(
+        string='Actual Despatch Date',
+        help="The date when the picking was completed.")
+    exp_dis_date = fields.Date(
+        string="Expected Dispatch Date",
+        tracking=True,
     )
 
     delay_remark = fields.Text(string='Delay Remark')
 
     @api.depends('exp_dispatch_date', 'dispatch_date', 'state')
     def _compute_dispatch_delay(self):
-        today = fields.Datetime.today()
+        today = fields.Date.today()
         for rec in self:
             exp_date = rec.exp_dispatch_date
-            if isinstance(exp_date, fields.Datetime):
+            if isinstance(exp_date, fields.Date):
                 exp_date = exp_date.date()
 
             rec.is_dispatch_delayed = bool(
@@ -57,18 +69,6 @@ class StockPicking(models.Model):
                 and not rec.dispatch_date
                 and rec.state not in ('done', 'cancel')
             )
-
-    # -----------------------------------------------------
-    # BLOCK VALIDATION WITHOUT REASON
-    # -----------------------------------------------------
-    def button_validate(self):
-        for rec in self:
-            if rec.is_dispatch_delayed and not rec.delay_reason_id:
-                raise ValueError(
-                    _("Dispatch is delayed. Please select a Delay Reason before validation.")
-                )
-        return super().button_validate()
-    
 
     @api.model
     def fields_view_get(self, view_id=None, view_type='form',
@@ -107,7 +107,7 @@ class DispatchDelaySummary(models.Model):
     partner_id = fields.Many2one('res.partner', string='Customer Name')
     remarks = fields.Text(string='Remarks')
     total_qty = fields.Float(string='Total Qty')
-    action_taken = fields.Char(string='Action By')
+    action_taken = fields.Many2one('res.users', string='Action By')
     action = fields.Char(string='Action')
     exp_dispatch_date = fields.Date(string='Exp Dispatch Date')
     dispatch_date = fields.Date(string='Dispatch Date')
@@ -133,17 +133,32 @@ class DispatchDelaySummary(models.Model):
                     sp.name AS picking_name,
                     sp.partner_id AS partner_id,
                     sp.remarks AS remarks,
-                    0.0::float AS total_qty,
-                    ''::varchar AS action_taken,
+                    COALESCE(SUM(sml.quantity), 0)::float AS total_qty,
+                    sp.delay_acknowledged_by AS action_taken,
                     ''::varchar AS action,
-                    sp.scheduled_date::date AS exp_dispatch_date,
-                    sp.date_done::date AS dispatch_date,
+                    sp.exp_dis_date::date AS exp_dispatch_date,
+                    sp.actual_dispatch_date::date AS dispatch_date,
                     sp.delay_reason_id,
                     sp.state
                 FROM stock_picking sp
+                LEFT JOIN stock_move_line sml
+                    ON sml.picking_id = sp.id
                 WHERE
-                    sp.scheduled_date IS NOT NULL
-                    AND sp.scheduled_date::date < CURRENT_DATE
-                    AND sp.state NOT IN ('done', 'cancel')
+                    sp.exp_dis_date IS NOT NULL
+                    AND sp.state = 'done'
+                    AND sp.actual_dispatch_date IS NOT NULL
+                    AND sp.actual_dispatch_date::date > sp.exp_dis_date::date
+                    AND COALESCE(sp.delay_acknowledged, false) = true
+                    AND sp.delay_reason_id IS NOT NULL
+                GROUP BY
+                    sp.id,
+                    sp.name,
+                    sp.partner_id,
+                    sp.remarks,
+                    sp.delay_acknowledged_by,
+                    sp.exp_dis_date,
+                    sp.actual_dispatch_date,
+                    sp.delay_reason_id,
+                    sp.state
             )
         """)

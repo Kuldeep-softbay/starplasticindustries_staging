@@ -49,27 +49,56 @@ class RmGradeWiseStockWizard(models.TransientModel):
         self.ensure_one()
         domain = [
             ('state', '=', 'done'),
-            ('picking_id', '!=', False),   # ✅ IMPORTANT
             ('date', '>=', self._datetime_from()),
             ('date', '<=', self._datetime_to()),
+
+            # Raw Material only
+            ('product_id.product_tmpl_id.purchase_ok', '=', True),
+            ('product_id.product_tmpl_id.sale_ok', '=', False),
+
+            # Must affect internal stock
+            '|',
+            ('location_id.usage', '=', 'internal'),
+            ('location_dest_id.usage', '=', 'internal'),
+
+            # Manufacturing or Picking (clean data)
+            '|',
+            ('raw_material_production_id', '!=', False),
+            ('picking_id', '!=', False),
         ]
+
         if self.product_id:
             domain.append(('product_id', '=', self.product_id.id))
+
         if self.party_id:
             domain.append(('party_id', '=', self.party_id.id))
+
         return domain
+
+
 
     def _opening_domain(self):
         self.ensure_one()
         domain = [
             ('state', '=', 'done'),
-            ('picking_id', '!=', False),   # ✅ IMPORTANT
             ('date', '<', self._datetime_from()),
+
+            # Raw Material only
+            ('product_id.product_tmpl_id.purchase_ok', '=', True),
+            ('product_id.product_tmpl_id.sale_ok', '=', False),
+
+            # Must affect internal stock
+            '|',
+            ('location_id.usage', '=', 'internal'),
+            ('location_dest_id.usage', '=', 'internal'),
         ]
+
         if self.product_id:
             domain.append(('product_id', '=', self.product_id.id))
+
         if self.party_id:
             domain.append(('party_id', '=', self.party_id.id))
+
         return domain
 
     def _compute_opening_balance(self):
@@ -103,11 +132,33 @@ class RmGradeWiseStockWizard(models.TransientModel):
             qty = mv.product_uom_qty
             received = issued = 0.0
 
-            if mv.location_dest_id.usage == 'internal' and mv.location_id.usage != 'internal':
+            # --------------------------------------------------
+            # RM RECEIPT (Purchase / Return / FG Unbuild)
+            # --------------------------------------------------
+            if (
+                mv.location_dest_id.usage == 'internal'
+                and mv.location_id.usage not in ('internal', 'production')
+            ):
                 received = qty
-            elif mv.location_id.usage == 'internal' and mv.location_dest_id.usage != 'internal':
+
+            # --------------------------------------------------
+            # RM ISSUE TO MANUFACTURING (MOST IMPORTANT FIX)
+            # --------------------------------------------------
+            elif (
+                mv.location_id.usage == 'internal'
+                and mv.location_dest_id.usage == 'production'
+                and mv.raw_material_production_id
+            ):
                 issued = qty
 
+            # --------------------------------------------------
+            # RM ISSUE TO CUSTOMER / SCRAP
+            # --------------------------------------------------
+            elif (
+                mv.location_id.usage == 'internal'
+                and mv.location_dest_id.usage in ('customer', 'scrap')
+            ):
+                issued = qty
             balance += (received - issued)
 
             report_env.create({

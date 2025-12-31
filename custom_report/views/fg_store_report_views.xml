@@ -39,7 +39,7 @@
                 <field name="partner_id"/>
                 <field name="wo_no"/>
                 <field name="pmemo"/>
-                <field name="challan_no"/>
+                <field name="invoice_number"/>
                 <field name="unit_weight"/>
                 <field name="received_qty"/>
                 <field name="issued_qty"/>

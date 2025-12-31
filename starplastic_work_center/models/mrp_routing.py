@@ -46,6 +46,19 @@ class MrpRoutingWorkcenter(models.Model):
             if self.cycle_time_manual_seconds > 0
             else 0.0
         )
+
+    def compute_operation_duration(self, required_qty):
+        self.ensure_one()
+
+        if not self.time_cycle_manual or self.cavity < 1:
+            return 0.0
+
+        if required_qty <= self.cavity:
+            return self.time_cycle_manual
+
+        cycles = required_qty / self.cavity
+        return cycles * self.time_cycle_manual
+
     
     @api.constrains('cavity', 'standard_cycle_time', 'cycle_time_tolerance')
     def _check_positive_values(self):

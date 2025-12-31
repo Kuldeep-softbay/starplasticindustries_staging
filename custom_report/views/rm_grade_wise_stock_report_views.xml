@@ -34,17 +34,17 @@
         <field name="model">rm.grade.wise.stock.report</field>
         <field name="arch" type="xml">
             <list string="RM Grade Wise Stock" create="false" edit="false" delete="false">
-                <field name="date"/>
-                <field name="particulars"/>
-                <field name="product_id"/>
-                <field name="batch"/>
-                <field name="grade"/>
-                <field name="vendor_id"/>
-                <field name="invoice_no"/>
-                <field name="received_qty"/>
-                <field name="pmemo_no"/>
-                <field name="issue_qty"/>
-                <field name="balance_qty"/>
+                <field name="date" optional="show"/>
+                <field name="particulars" optional="show"/>
+                <field name="product_id" optional="show"/>
+                <field name="batch" optional="show"/>
+                <field name="grade" optional="show"/>
+                <field name="vendor_id" optional="show"/>
+                <field name="invoice_no" optional="show"/>
+                <field name="received_qty" optional="show"/>
+                <field name="pmemo_no" optional="show"/>
+                <field name="issue_qty" optional="show"/>
+                <field name="balance_qty" optional="show"/>
             </list>
         </field>
     </record>

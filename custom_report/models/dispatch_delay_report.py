@@ -11,7 +11,6 @@ class DispatchDelayReasonWizard(models.TransientModel):
         readonly=True
     )
 
-    # reason = fields.Text(string='Delay Reason', required=True)
     delay_reason_id = fields.Many2one(
         'dispatch.delay.reason',
         string='Delay Reason',
@@ -23,7 +22,7 @@ class DispatchDelayReasonWizard(models.TransientModel):
         self.picking_id.write({
             'delay_acknowledged': True,
             'delay_reason_id': self.delay_reason_id.id,
-            # 'remarks': self.reason or self.delay_reason_id.name,
+            'delay_acknowledged_by': self.env.user.id,
         })
         return {'type': 'ir.actions.act_window_close'}
 
@@ -56,44 +55,29 @@ class DispatchDelayReport(models.Model):
                     sp.id AS id,
                     sp.name AS packing_slip_no,
                     sp.partner_id AS partner_id,
-                    sp.scheduled_date::date AS exp_dispatch_date,
-                    sp.date_done::date AS dispatch_date,
+                    sp.exp_dis_date::date AS exp_dispatch_date,
+                    sp.actual_dispatch_date::date AS dispatch_date,
                     sp.remarks AS remark,
                     COALESCE(SUM(sml.quantity), 0) AS total_qty
                 FROM stock_picking sp
                 LEFT JOIN stock_move_line sml
                     ON sml.picking_id = sp.id
                 WHERE
-                    sp.scheduled_date IS NOT NULL
-                    AND sp.scheduled_date::date < CURRENT_DATE
-                    AND sp.state NOT IN ('done', 'cancel')
+                    sp.exp_dis_date IS NOT NULL
+                    AND sp.state = 'done'
+                    AND sp.actual_dispatch_date IS NOT NULL
+                    AND sp.actual_dispatch_date::date > sp.exp_dis_date::date
                     AND COALESCE(sp.delay_acknowledged, false) = false
                 GROUP BY
                     sp.id,
                     sp.name,
                     sp.partner_id,
-                    sp.scheduled_date,
-                    sp.date_done,
+                    sp.exp_dis_date,
+                    sp.actual_dispatch_date,
                     sp.remarks
             )
         """)
 
-    # def action_toggle(self):
-    #     """
-    #     This method is triggered by the list view button.
-    #     You cannot hide the button dynamically in Odoo 18,
-    #     but you CAN control behavior.
-    #     """
-    #     return {
-    #         'type': 'ir.actions.client',
-    #         'tag': 'display_notification',
-    #         'params': {
-    #             'title': 'Dispatch Delay',
-    #             'message': 'Action executed successfully.',
-    #             'type': 'success',
-    #             'sticky': False,
-    #         }
-    #     }
     def action_hide(self):
         self.ensure_one()
         return {
@@ -101,7 +85,7 @@ class DispatchDelayReport(models.Model):
             'name': 'Acknowledge Dispatch Delay',
             'res_model': 'dispatch.delay.reason.wizard',
             'view_mode': 'form',
-            'target': 'new',          # ← THIS makes it a popup
+            'target': 'new',
             'context': {
                 'default_picking_id': self.id,
             }

@@ -9,7 +9,7 @@
         <page string="Packing">
           <group>
             <group>
-              <field name="exp_dispatch_date"/>
+              <field name="exp_dis_date"/>
               <field name="exp_packing_date"/>
               <field name="actual_packing_date"/>
             </group>

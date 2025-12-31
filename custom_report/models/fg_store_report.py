@@ -14,7 +14,7 @@ class FgStoreReport(models.Model):
     partner_id = fields.Many2one('res.partner', string='Party')
     wo_no = fields.Char(string='W.O No')
     pmemo = fields.Char(string='Pmemo')
-    challan_no = fields.Char(string='Challan No.')
+    invoice_number = fields.Char(string='Invoice Number')
     unit_weight = fields.Float(string='Unit Weight')
     received_qty = fields.Float(string='Received')
     issued_qty = fields.Float(string='Issued')
@@ -100,7 +100,7 @@ class FgStoreReportWizard(models.TransientModel):
                 'partner_id': mv.partner_id.id or (mv.picking_id.partner_id.id if mv.picking_id else False),
                 'wo_no': mv.origin,  # you can map to your W.O field
                 'pmemo': mv.reference or '',  # adapt
-                'challan_no': mv.picking_id.name if mv.picking_id else '',
+                'invoice_number': mv.picking_id.invoice_number if mv.picking_id else '',
                 'unit_weight': mv.product_id.weight or 0.0,
                 'received_qty': received,
                 'issued_qty': issued,

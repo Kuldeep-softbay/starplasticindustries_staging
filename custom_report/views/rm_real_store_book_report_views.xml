@@ -15,7 +15,7 @@
                         <field name="product_id"/>
                     </group>
                     <group>
-                        <field name="particulars"/>
+                        <!-- <field name="particulars"/> -->
                         <field name="location_id"/>
                     </group>
                 </group>
@@ -39,16 +39,16 @@
         <field name="arch" type="xml">
             <list string="RM Real Store Book" create="false" edit="false" delete="false">
                 <field name="date" optional="show"/>
-                <field name="particulars"/>
-                <field name="product_id"/>
-                <field name="batch"/>
-                <field name="grade"/>
-                <field name="vendor_id"/>
-                <field name="invoice_no"/>
-                <field name="received_qty"/>
-                <field name="pmemo_no"/>
-                <field name="production_qty"/>
-                <field name="balance_qty"/>
+                <field name="particulars" optional="hide"/>
+                <field name="product_id" optional="show"/>
+                <field name="batch" optional="show"/>
+                <field name="grade" optional="show"/>
+                <field name="vendor_id" optional="show"/>
+                <field name="invoice_no" optional="show"/>
+                <field name="received_qty" optional="show"/>
+                <field name="pmemo_no" optional="show"/>
+                <field name="production_qty" optional="show"/>
+                <field name="balance_qty" optional="show"/>
             </list>
         </field>
     </record>

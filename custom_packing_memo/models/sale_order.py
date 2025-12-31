@@ -4,7 +4,7 @@ from collections import defaultdict
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    exp_dispatch_date = fields.Date(string="Expected Dispatch Date")
+    exp_dis_date = fields.Date(string="Expected Dispatch Date")
     exp_packing_date = fields.Date(string="Expected Packing Date")
     actual_packing_date = fields.Date(string="Actual Packing Date")
     remark = fields.Char(string="Remark")
@@ -74,3 +74,18 @@ class SaleOrder(models.Model):
             "details": details,
             "summary": summary,
         }
+
+    def write(self, vals):
+        res = super().write(vals)
+
+        if 'exp_dispatch_date' in vals:
+            for order in self:
+                pickings = order.picking_ids.filtered(
+                    lambda p: p.state not in ('done', 'cancel')
+                    and p.picking_type_code == 'outgoing'
+                )
+                pickings.write({
+                    'exp_dispatch_date': order.exp_dispatch_date,
+                })
+
+        return res

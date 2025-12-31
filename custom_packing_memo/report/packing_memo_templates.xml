@@ -78,7 +78,7 @@
 
                         <div>
                             Exp Dispatch Date:
-                            <t t-esc="o.exp_dispatch_date and o.exp_dispatch_date.strftime('%d-%m-%Y') or ''"/>
+                            <t t-esc="o.exp_disp_date and o.exp_disp_date.strftime('%d-%m-%Y') or ''"/>
                         </div>
 
                         <div>
@@ -130,7 +130,9 @@
                                             - <t t-esc="d['default_code']"/>
                                         </t>
                                     </td>
-                                    <td/>
+                                    <td>
+                                        <t t-esc="o.remark or ''"/>
+                                    </td>
                                     <td class="text-right">
                                         <t t-esc="d['qty']"/>
                                     </td>
@@ -170,7 +172,9 @@
                                         - <t t-esc="s['default_code']"/>
                                     </t>
                                 </td>
-                                <td/>
+                                <td>
+                                    <t t-esc="o.remark or ''"/>
+                                </td>
                                 <td class="text-right">
                                     <t t-esc="s['qty']"/>
                                 </td>

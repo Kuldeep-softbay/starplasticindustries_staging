@@ -41,5 +41,9 @@
               name="FG Work Order Wise Report"
               parent="menu_fg_reports"
               action="action_fg_work_order_wise_wizard"/>
+    <menuitem id="menu_dispatch_delay_report"
+              name="Dispatch Delay"
+              parent="menu_dispatch_delay_reports"
+              action="action_dispatch_delay_report"/>
 </odoo>
     
