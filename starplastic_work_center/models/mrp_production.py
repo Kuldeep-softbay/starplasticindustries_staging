@@ -23,37 +23,51 @@ class MrpProduction(models.Model):
     )
 
     unit_weight = fields.Float(string="Unit Weight")
-
-    @api.onchange('product_id')
-    def _onchange_product_set_unit_weight(self):
-        if self.product_id:
-            self.unit_weight = self.product_id.product_tmpl_id.weight or 0.0
-
     total_kg = fields.Float(string="Total KG")
     total_pcs = fields.Integer(
         string="Total PCS",
         compute="_compute_total_pcs",
         store=True
     )
+    unit_weight_kg = fields.Float(
+        string="Unit Weight (KG)",
+        compute="_compute_unit_weight_kg",
+        store=True)
+    # --------------------------------
+    # Convert Unit Weight Gram → KG
+    # --------------------------------
+    @api.depends('unit_weight')
+    def _compute_unit_weight_kg(self):
+        for rec in self:
+            rec.unit_weight_kg = rec.unit_weight / 1000 if rec.unit_weight else 0.0
+
+    @api.depends('total_kg', 'unit_weight_kg')
+    def _compute_total_pcs(self):
+        for rec in self:
+            # unit_weight_kg = rec.product_id.product_tmpl_id.weight or 0.0
+            if rec.unit_weight_kg > 0:
+                rec.total_pcs = int(rec.total_kg / rec.unit_weight_kg)
+            else:
+                rec.total_pcs = 0
 
     # -------------------------
     # Compute Unit Weight from Product
     # -------------------------
-    @api.depends('product_id')
-    def _compute_unit_weight(self):
-        for rec in self:
-            rec.unit_weight = rec.product_id.product_tmpl_id.weight or 0.0
+    # @api.depends('product_id')
+    # def _compute_unit_weight(self):
+    #     for rec in self:
+    #         rec.unit_weight = rec.product_id.product_tmpl_id.weight or 0.0
 
     # -------------------------
     # Compute Total PCS
     # -------------------------
-    @api.depends('total_kg', 'unit_weight')
-    def _compute_total_pcs(self):
-        for rec in self:
-            if rec.unit_weight > 0:
-                rec.total_pcs = int(rec.total_kg / rec.unit_weight)
-            else:
-                rec.total_pcs = 0
+    # @api.depends('total_kg', 'unit_weight')
+    # def _compute_total_pcs(self):
+    #     for rec in self:
+    #         if rec.unit_weight > 0:
+    #             rec.total_pcs = int(rec.total_kg / rec.unit_weight)
+    #         else:
+    #             rec.total_pcs = 0
 
     @api.depends('origin', 'product_id')
     def _compute_customer_order(self):

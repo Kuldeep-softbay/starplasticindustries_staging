@@ -62,9 +62,9 @@ class RmGradeWiseStockWizard(models.TransientModel):
             ('location_dest_id.usage', '=', 'internal'),
 
             # Manufacturing or Picking (clean data)
-            '|',
-            ('raw_material_production_id', '!=', False),
-            ('picking_id', '!=', False),
+            # '|',
+            # ('raw_material_production_id', '!=', False),
+            # ('picking_id', '!=', False),
         ]
 
         if self.product_id:
@@ -146,18 +146,16 @@ class RmGradeWiseStockWizard(models.TransientModel):
             # --------------------------------------------------
             elif (
                 mv.location_id.usage == 'internal'
-                and mv.location_dest_id.usage == 'production'
-                and mv.raw_material_production_id
             ):
                 issued = qty
 
-            # --------------------------------------------------
-            # RM ISSUE TO CUSTOMER / SCRAP
-            # --------------------------------------------------
-            elif (
-                mv.location_id.usage == 'internal'
-                and mv.location_dest_id.usage in ('customer', 'scrap')
-            ):
+            # # --------------------------------------------------
+            # # RM ISSUE TO CUSTOMER / SCRAP
+            # # --------------------------------------------------
+            # elif (
+            #     mv.location_id.usage == 'internal'
+            #     and mv.location_dest_id.usage in ('customer', 'scrap')
+            # ):
                 issued = qty
             balance += (received - issued)
 

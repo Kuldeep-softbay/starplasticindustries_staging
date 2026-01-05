@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
-from datetime import date
-
+from datetime import datetime as py_datetime
 
 # =========================================================
 # MASTER: DISPATCH DELAY REASON
@@ -55,19 +54,18 @@ class StockPicking(models.Model):
 
     delay_remark = fields.Text(string='Delay Remark')
 
-    @api.depends('exp_dispatch_date', 'dispatch_date', 'state')
+    @api.depends('exp_dis_date', 'actual_dispatch_date', 'state')
     def _compute_dispatch_delay(self):
-        today = fields.Date.today()
         for rec in self:
-            exp_date = rec.exp_dispatch_date
-            if isinstance(exp_date, fields.Date):
+            exp_date = rec.exp_dis_date
+            act_date = rec.actual_dispatch_date
+            if isinstance(exp_date, py_datetime):
                 exp_date = exp_date.date()
+            if isinstance(act_date, py_datetime):
+                act_date = act_date.date()
 
             rec.is_dispatch_delayed = bool(
-                exp_date
-                and exp_date < today
-                and not rec.dispatch_date
-                and rec.state not in ('done', 'cancel')
+                exp_date and act_date and act_date > exp_date
             )
 
     @api.model
