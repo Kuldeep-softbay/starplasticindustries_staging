@@ -20,7 +20,6 @@
     <field name="model">purchase.monthly.report</field>
     <field name="arch" type="xml">
         <list>
-            <field name="month" optional="hide"/>
             <field name="product_tmpl_id" optional="show"/>
             <field name="opening_stock" optional="show"/>
             <field name="purchase_qty" optional="show"/>

@@ -57,12 +57,16 @@ class StockPicking(models.Model):
             picking.total_product_qty = sum(picking.move_ids.mapped('product_qty'))
 
     @api.depends(
+        'picking_type_id.code',
         'move_ids_without_package.product_id',
         'move_ids_without_package.product_id.default_code'
     )
     def _compute_internal_batch_number(self):
         for picking in self:
             if picking.internal_batch_number:
+                continue
+
+            if not picking.picking_type_id or picking.picking_type_id.code != 'incoming':
                 continue
 
             raw_material_code = 'RM00'

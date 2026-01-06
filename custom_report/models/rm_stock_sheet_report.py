@@ -20,7 +20,6 @@ class RmStockSheetReport(models.Model):
     party_id = fields.Many2one('job.party.work', string='Party')
     location_id = fields.Many2one('stock.location', string='Location')
 
-    # ✅ PRODUCT VARIANT (CORRECT FK)
     product_id = fields.Many2one('product.product', string='Raw Material')
 
     grade = fields.Char(string='RM Grade')
@@ -54,18 +53,13 @@ class RmStockSheetWizard(models.TransientModel):
     location_id = fields.Many2one(
         'stock.location',
         string='Location',
-        domain="[('usage', '=', 'internal')]",
-    )
-
-    product_id = fields.Many2one(
-        'product.product',
-        string='Product',
+        domain="[('usage', '=', 'internal')]"
     )
 
     product_tmpl_id = fields.Many2one(
         'product.template',
-        string='Product Template',
-        domain="[('purchase_ok', '=', True), ('sale_ok', '=', False)]",
+        string='RM Type',
+        domain="[('purchase_ok', '=', True), ('sale_ok', '=', False)]"
     )
 
     # -----------------------------------------------------
@@ -83,14 +77,15 @@ class RmStockSheetWizard(models.TransientModel):
             ('date', '<=', self._datetime_to()),
         ]
 
-        if self.product_id:
-            domain.append(('product_id', '=', self.product_id.id))
-
         if self.product_tmpl_id:
-            domain.append(('product_id.product_tmpl_id', '=', self.product_tmpl_id.id))
+            domain.append(
+                ('product_id.product_tmpl_id', '=', self.product_tmpl_id.id)
+            )
 
         if self.party_id:
-            domain.append(('move_id.party_id', '=', self.party_id.id))
+            domain.append(
+                ('move_id.party_id', '=', self.party_id.id)
+            )
 
         return domain
 
@@ -105,14 +100,17 @@ class RmStockSheetWizard(models.TransientModel):
 
         computation_key = f"{self.env.uid}-{fields.Datetime.now()}"
 
-        Report.search([('computation_key', '=', computation_key)]).unlink()
+        Report.search([
+            ('computation_key', '=', computation_key)
+        ]).unlink()
 
         move_lines = MoveLine.search(
             self._base_domain_move_line(),
-            order='date, id'
+            order='date,id'
         )
 
         aggregated = {}
+        counted_pickings = set()
 
         for ml in move_lines:
             product = ml.product_id
@@ -127,16 +125,14 @@ class RmStockSheetWizard(models.TransientModel):
                 continue
 
             delta = 0.0
-            location = False
-
+            location = None
             if self.location_id:
-                loc = self.location_id
-                if ml.location_dest_id == loc:
+                if ml.location_dest_id == self.location_id:
                     delta = qty
-                    location = loc
-                elif ml.location_id == loc:
+                    location = self.location_id
+                elif ml.location_id == self.location_id:
                     delta = -qty
-                    location = loc
+                    location = self.location_id
                 else:
                     continue
             else:
@@ -151,25 +147,21 @@ class RmStockSheetWizard(models.TransientModel):
 
             if abs(delta) < 0.00001:
                 continue
-
-            party = ml.move_id.party_id or False
-
-            # SAFE READS
-            grade = product.display_name
+            party = ml.move_id.party_id if ml.move_id.party_id else None
             picking = ml.move_id.picking_id
 
-            mfi = picking.mfi_value if picking and hasattr(picking, 'mfi_value') else ''
-            batch = picking.supplier_batch_number if picking and hasattr(picking, 'supplier_batch_number') else ''
-            bag_qty = picking.number_of_bags if picking and hasattr(picking, 'number_of_bags') else 0.0
+            mfi = ''
+            batch = ''
+            if picking:
+                mfi_val = getattr(picking, 'mfi_value', None)
+                batch_val = getattr(picking, 'supplier_batch_number', None)
+                mfi = str(mfi_val).strip() if mfi_val not in (None, False) else ''
+                batch = str(batch_val).strip() if batch_val not in (None, False) else ''
 
             key = (
-                party.id if party else False,
-                location.id if location else False,
+                party.id if party else 0,
+                location.id if location else 0,
                 tmpl.id,
-                product.id,
-                grade,
-                batch,
-                mfi,
             )
 
             if key not in aggregated:
@@ -177,18 +169,19 @@ class RmStockSheetWizard(models.TransientModel):
                     'party': party,
                     'location': location,
                     'product_tmpl': tmpl.id,
-                    'product': product.id,
-                    'grade': grade,
+                    'grade': tmpl.name,
                     'mfi': mfi,
                     'batch': batch,
                     'bag_qty': 0.0,
                     'kgs': 0.0,
                 }
 
-            aggregated[key]['bag_qty'] += bag_qty
             aggregated[key]['kgs'] += delta
 
-        # CREATE REPORT LINES
+            if picking and picking.id not in counted_pickings:
+                bag_qty = picking.number_of_bags or 0.0
+                aggregated[key]['bag_qty'] += bag_qty
+                counted_pickings.add(picking.id)
         for data in aggregated.values():
             if abs(data['kgs']) < 0.00001:
                 continue
@@ -199,7 +192,6 @@ class RmStockSheetWizard(models.TransientModel):
                 'party_id': data['party'].id if data['party'] else False,
                 'location_id': data['location'].id if data['location'] else False,
                 'product_tmpl_id': data['product_tmpl'],
-                'product_id': data['product'],
                 'grade': data['grade'],
                 'mfi': data['mfi'],
                 'batch': data['batch'],

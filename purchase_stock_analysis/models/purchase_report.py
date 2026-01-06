@@ -18,8 +18,6 @@ class PurchaseMonthlyReport(models.Model):
     issue_qty = fields.Float(readonly=True)
     closing_stock = fields.Float(readonly=True)
 
-    month = fields.Date(string='Month', readonly=True)
-
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
 
@@ -27,53 +25,51 @@ class PurchaseMonthlyReport(models.Model):
             CREATE OR REPLACE VIEW purchase_monthly_report AS (
                 SELECT
                     row_number() OVER () AS id,
-                    pt.id AS product_tmpl_id,
-                    date_trunc('month', sm.date) AS month,
+                    MIN(pt.id) AS product_tmpl_id,
 
-                    /* Opening Stock */
+                    /* OPENING STOCK (before current month) */
                     SUM(
                         CASE
-                            WHEN sm.date < date_trunc('month', sm.date)
-                            THEN sm.product_uom_qty *
+                            WHEN sm.date < date_trunc('month', CURRENT_DATE)
+                            THEN
                                 CASE
-                                    WHEN src.usage = 'internal' THEN -1
-                                    WHEN dest.usage = 'internal' THEN 1
+                                    WHEN dest.usage = 'internal' THEN sm.product_uom_qty
+                                    WHEN src.usage = 'internal' THEN -sm.product_uom_qty
                                     ELSE 0
                                 END
                             ELSE 0
                         END
                     ) AS opening_stock,
 
-                    /* Purchase Qty */
+                    /* PURCHASE QTY (current month) */
                     SUM(
                         CASE
                             WHEN src.usage = 'supplier'
-                            AND dest.usage = 'internal'
-                            AND sm.date >= date_trunc('month', sm.date)
-                            AND sm.date < date_trunc('month', sm.date) + INTERVAL '1 month'
+                             AND dest.usage = 'internal'
+                             AND sm.date >= date_trunc('month', CURRENT_DATE)
+                             AND sm.date < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
                             THEN sm.product_uom_qty
                             ELSE 0
                         END
                     ) AS purchase_qty,
 
-                    /* Issue Qty */
+                    /* ISSUE QTY (current month) */
                     SUM(
                         CASE
                             WHEN src.usage = 'internal'
-                            AND dest.usage != 'internal'
-                            AND sm.date >= date_trunc('month', sm.date)
-                            AND sm.date < date_trunc('month', sm.date) + INTERVAL '1 month'
+                             AND dest.usage != 'internal'
+                             AND sm.date >= date_trunc('month', CURRENT_DATE)
+                             AND sm.date < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
                             THEN sm.product_uom_qty
                             ELSE 0
                         END
                     ) AS issue_qty,
 
-                    /* Closing Stock */
+                    /* CLOSING STOCK (till date) */
                     SUM(
-                        sm.product_uom_qty *
                         CASE
-                            WHEN dest.usage = 'internal' THEN 1
-                            WHEN src.usage = 'internal' THEN -1
+                            WHEN dest.usage = 'internal' THEN sm.product_uom_qty
+                            WHEN src.usage = 'internal' THEN -sm.product_uom_qty
                             ELSE 0
                         END
                     ) AS closing_stock
@@ -85,10 +81,10 @@ class PurchaseMonthlyReport(models.Model):
                 JOIN stock_location dest ON sm.location_dest_id = dest.id
 
                 WHERE sm.state = 'done'
-                AND pt.purchase_ok = TRUE
-                AND pt.sale_ok = FALSE
+                  AND pt.purchase_ok = TRUE
+                  AND pt.active = TRUE
 
-                GROUP BY pt.id, date_trunc('month', sm.date)
+                GROUP BY pt.name
             )
         """)
 
