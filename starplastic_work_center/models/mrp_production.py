@@ -50,25 +50,6 @@ class MrpProduction(models.Model):
             else:
                 rec.total_pcs = 0
 
-    # -------------------------
-    # Compute Unit Weight from Product
-    # -------------------------
-    # @api.depends('product_id')
-    # def _compute_unit_weight(self):
-    #     for rec in self:
-    #         rec.unit_weight = rec.product_id.product_tmpl_id.weight or 0.0
-
-    # -------------------------
-    # Compute Total PCS
-    # -------------------------
-    # @api.depends('total_kg', 'unit_weight')
-    # def _compute_total_pcs(self):
-    #     for rec in self:
-    #         if rec.unit_weight > 0:
-    #             rec.total_pcs = int(rec.total_kg / rec.unit_weight)
-    #         else:
-    #             rec.total_pcs = 0
-
     @api.depends('origin', 'product_id')
     def _compute_customer_order(self):
         for mo in self:

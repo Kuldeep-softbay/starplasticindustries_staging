@@ -78,7 +78,7 @@
 
                         <div>
                             Exp Dispatch Date:
-                            <t t-esc="o.exp_disp_date and o.exp_disp_date.strftime('%d-%m-%Y') or ''"/>
+                            <t t-esc="o.exp_dis_date and o.exp_dis_date.strftime('%d-%m-%Y') or ''"/>
                         </div>
 
                         <div>
@@ -122,7 +122,7 @@
                                         <t t-esc="d_index + 1"/>
                                     </td>
                                     <td>
-                                        <t t-esc="d['batch_number']"/>
+                                        <t t-esc="d.get('lot_name', '')"/>
                                     </td>
                                     <td>
                                         <t t-esc="d['product_display_name']"/>
@@ -164,7 +164,7 @@
                                     <t t-esc="s_index + 1"/>
                                 </td>
                                 <td>
-                                    <t t-esc="s['batch_number']"/>
+                                    <t t-esc="s.get('lot_name', '')"/>
                                 </td>
                                 <td>
                                     <t t-esc="s['product_display_name']"/>

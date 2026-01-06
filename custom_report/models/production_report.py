@@ -4,16 +4,6 @@ from datetime import datetime, time
 from odoo.exceptions import UserError
 
 
-class MrpWorkorder(models.Model):
-    _inherit = 'mrp.workorder'
-
-    batch_number = fields.Char(
-        string='Batch Number',
-        required=True,
-        index=True
-    )
-
-
 class ProductionReportLine(models.Model):
     _name = 'production.report.line'
     _description = 'Production Report Line'
@@ -25,7 +15,7 @@ class ProductionReportLine(models.Model):
     particulars = fields.Char(string='Particulars')
 
     product_id = fields.Many2one('product.product', string='Item Name')
-    batch = fields.Char(string='Batch No')
+    lot_id = fields.Many2one('stock.lot', string='Batch No')
 
     total_production = fields.Float(string='Total Production')
     total_dispatch = fields.Float(string='Total Dispatch')
@@ -43,50 +33,54 @@ class ProductionReportWizard(models.TransientModel):
         required=True
     )
 
-    workorder_id = fields.Many2one(
-        'mrp.workorder',
+    lot_id = fields.Many2one(
+        'stock.lot',
         string='Batch Number',
-        domain="[('production_id.product_id', '=', product_id)]",
-        help="Select Batch Number from Work Orders",
-    )
-    batch_number = fields.Char(
-        related='workorder_id.batch_number',
-        string='Batch Number',
-        readonly=True
+        domain="[('product_id', '=', product_id)]"
     )
 
     def action_show_report(self):
         self.ensure_one()
 
         Report = self.env['production.report.line']
-        Move = self.env['stock.move']
+        StockMove = self.env['stock.move']
         Scrap = self.env['stock.scrap']
 
-        computation_key = (
-            f"{self.env.uid}-"
-            f"{fields.Datetime.now().strftime('%Y%m%d%H%M%S')}"
-        )
+        computation_key = f"{self.env.uid}-{fields.Datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-        wo = self.workorder_id
-        mo = wo.production_id
-
-        if not mo:
-            raise UserError(_("Selected Work Order has no Manufacturing Order"))
+        if not self.lot_id:
+            raise UserError(_("Please select a Batch / Lot"))
 
         product = self.product_id
-        batch = wo.batch_number or ''
-        production_qty = mo.qty_produced or 0.0
-        dispatch_moves = Move.search([
+        lot = self.lot_id
+
+        production_moves = StockMove.search([
             ('state', '=', 'done'),
-            ('production_id', '=', mo.id),
             ('product_id', '=', product.id),
+            ('move_line_ids.lot_id', '=', lot.id),
+            ('location_dest_id.usage', '=', 'internal'),
+        ])
+        production_qty = sum(
+            production_moves.mapped('move_line_ids').filtered(
+                lambda ml: ml.lot_id == lot
+            ).mapped('qty_done')
+        )
+        dispatch_moves = StockMove.search([
+            ('state', '=', 'done'),
+            ('product_id', '=', product.id),
+            ('move_line_ids.lot_id', '=', lot.id),
             ('location_dest_id.usage', '=', 'customer'),
         ])
 
-        dispatch_qty = sum(dispatch_moves.mapped('product_uom_qty'))
+        dispatch_qty = sum(
+            dispatch_moves.mapped('move_line_ids').filtered(
+                lambda ml: ml.lot_id == lot
+            ).mapped('qty_done')
+        )
         scrap_moves = Scrap.search([
-            ('production_id', '=', mo.id),
             ('state', '=', 'done'),
+            ('product_id', '=', product.id),
+            ('lot_id', '=', lot.id),
         ])
 
         reject_qty = sum(scrap_moves.mapped('scrap_qty'))
@@ -94,12 +88,10 @@ class ProductionReportWizard(models.TransientModel):
 
         Report.create({
             'computation_key': computation_key,
-            'date': mo.date_finished.date()
-                    if mo.date_finished
-                    else fields.Date.context_today(self),
+            'date': fields.Date.context_today(self),
             'particulars': 'Batch Wise Production',
             'product_id': product.id,
-            'batch': batch,
+            'lot_id': lot.id,
             'total_production': production_qty,
             'total_dispatch': dispatch_qty,
             'total_reject': reject_qty,

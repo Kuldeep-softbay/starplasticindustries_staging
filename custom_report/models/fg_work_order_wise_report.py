@@ -5,14 +5,18 @@ from datetime import datetime
 class FgWorkOrderWiseLine(models.Model):
     _name = 'fg.work.order.wise.line'
     _description = 'FG Work Order Wise Report Line'
-    _order = 'batch_number, id'
+    _order = 'lot_id, id'
 
     computation_key = fields.Char(index=True)
 
     party_id = fields.Many2one('job.party.work', string='Party')
     product_id = fields.Many2one('product.product', string='Item')
 
-    batch_number = fields.Char(string='W.O. No.')
+    lot_id = fields.Many2one(
+        'stock.lot',
+        string='Batch. No',
+        domain="[('product_id', '=', product_id)]"
+    )
 
     actual_stock = fields.Float(string='Actual Stock')
     stock_available_for_packing = fields.Float(string='Stock Available for Packing')
@@ -29,7 +33,11 @@ class FgWorkOrderWiseWizard(models.TransientModel):
     party_id = fields.Many2one('job.party.work', string='Party')
     product_id = fields.Many2one('product.product', string='Item')
 
-    batch_number = fields.Char(string='W.O. No.')
+    lot_id = fields.Many2one(
+        'stock.lot',
+        string='Batch. No',
+        domain="[('product_id', '=', product_id)]"
+    )
 
     location_id = fields.Many2one(
         'stock.location',
@@ -58,29 +66,25 @@ class FgWorkOrderWiseWizard(models.TransientModel):
 
         computation_key = f"{self.env.uid}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
-        # 🔎 DOMAIN on WORK ORDERS
         domain = []
 
         if self.product_id:
             domain.append(('product_id', '=', self.product_id.id))
 
-        if self.batch_number:
-            domain.append(('batch_number', '=', self.batch_number))
+        # if self.lot_id:
+        #     domain.append(('lot_id', '=', self.lot_id.id))
 
-        # Get work orders
         workorders = WorkOrder.search(domain, order='id desc')
-
         if not workorders:
             return
 
         for wo in workorders:
             product = wo.product_id
-
             actual, avail, unit_weight = self._compute_product_stock(product)
 
-            # Party resolution (safe)
             party_id = False
             mo = wo.production_id
+            lot = wo.production_id.lot_producing_id
             if self.party_id:
                 party_id = self.party_id.id
             elif mo and hasattr(mo, 'sale_order_id') and mo.sale_order_id:
@@ -90,7 +94,7 @@ class FgWorkOrderWiseWizard(models.TransientModel):
                 'computation_key': computation_key,
                 'party_id': party_id,
                 'product_id': product.id,
-                'batch_number': wo.batch_number,
+                'lot_id': lot.id if lot else False,
                 'actual_stock': actual,
                 'stock_available_for_packing': avail,
                 'unit_weight': unit_weight,

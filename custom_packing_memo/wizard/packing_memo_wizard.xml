@@ -1,0 +1,32 @@
+<odoo>
+
+    <record id="view_packing_memo_wizard_form" model="ir.ui.view">
+        <field name="name">packing.memo.wizard.form</field>
+        <field name="model">packing.memo.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Packing Memo">
+                <sheet>
+                    <group>
+                        <field name="sale_id"/>
+                    </group>
+
+                    <field name="line_ids">
+                        <list editable="bottom">
+                            <field name="product_id"/>
+                            <field name="quantity"/>
+                            <field name="lot_id"/>
+                            <field name="available_qty"/>
+                            <field name="selected_qty"/>
+                        </list>
+                    </field>
+
+                    <footer>
+                        <button name="action_generate_packing_memo" type="object" class="btn-primary" string="Generate"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -50,6 +50,43 @@ class StockPicking(models.Model):
         string="Expected Dispatch Date",
         tracking=True,
     )
+    rejection_reason_id = fields.Many2one(
+        'rejection.reason',
+        string='Rejection Reason'
+    )
+    packing_memo_count = fields.Integer(
+        compute='_compute_packing_memo_count'
+    )
+
+    def _compute_packing_memo_count(self):
+        for picking in self:
+            picking.packing_memo_count = self.env[
+                'packing.memo'
+            ].search_count([
+                ('picking_id', '=', picking.id)
+            ])
+
+    def action_open_packing_memo_wizard(self):
+        sale_id = False
+        if self.origin:
+            sale = self.env['sale.order'].search([('name', '=', self.origin)], limit=1)
+            if sale:
+                sale_id = sale.id
+
+        ctx = {'default_picking_id': self.id}
+        if sale_id:
+            ctx['default_sale_id'] = sale_id
+
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'packing.memo.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_picking_id': self.id,
+                'default_sale_id': sale_id,
+            }
+        }
 
     @api.depends('move_ids.product_qty')
     def _compute_total_product_qty(self):

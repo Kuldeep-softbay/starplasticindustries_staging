@@ -25,54 +25,36 @@ class SaleOrder(models.Model):
                 order.packing_details = False
 
     def get_packing_memo_payload(self):
-        self.ensure_one()
+        selections = self.env.context.get('packing_memo_selections', {})
+        if not selections:
+            return {'details': [], 'summary': []}
 
         details = []
-        totals = defaultdict(float)
+        summary_map = defaultdict(float)
 
-        co_numbers = self.order_line.mapped("co_number")
-        co_numbers = [c for c in co_numbers if c]
+        for lot_id_str, qty in selections.items():
+            lot = self.env['stock.lot'].browse(int(lot_id_str))
+            product = lot.product_id
 
-        if not co_numbers:
-            return {
-                "details": [],
-                "summary": [],
-            }
-
-        workorders = self.env["mrp.workorder"].search([
-            ("customer_po_number", "in", co_numbers)
-        ])
-
-        for wo in workorders:
-            batch_number = wo.batch_number or ""
-            qty = wo.qty_production or wo.production_id.product_qty
-            product = wo.product_id or wo.production_id.product_id
-
-            # ---------- DETAILS ----------
             details.append({
-                "batch_number": batch_number,
-                "product_display_name": product.display_name,
-                "default_code": product.default_code or "",
-                "qty": qty,
+                'lot_name': lot.name,
+                'product_display_name': product.display_name,
+                'default_code': product.default_code,
+                'qty': qty,
             })
 
-            # ---------- SUMMARY KEY = (product, batch) ----------
-            totals[(product.id, batch_number)] += qty
+            summary_map[(lot.name, product.id)] += qty
 
-        summary = []
-        for (product_id, batch_number), qty in totals.items():
-            product = self.env["product.product"].browse(product_id)
-
-            summary.append({
-                "batch_number": batch_number,
-                "product_display_name": product.display_name,
-                "default_code": product.default_code or "",
-                "qty": qty,
-            })
+        summary = [{
+            'lot_name': lot_name,
+            'product_display_name': self.env['product.product'].browse(prod_id).display_name,
+            'default_code': self.env['product.product'].browse(prod_id).default_code,
+            'qty': total_qty,
+        } for (lot_name, prod_id), total_qty in summary_map.items()]
 
         return {
-            "details": details,
-            "summary": summary,
+            'details': details,
+            'summary': summary,
         }
 
     def write(self, vals):
