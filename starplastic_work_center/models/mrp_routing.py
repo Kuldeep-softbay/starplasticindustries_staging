@@ -39,10 +39,10 @@ class MrpRoutingWorkcenter(models.Model):
             cycle_seconds = 0.0
 
             if rec.standard_cycle_time and rec.standard_cycle_time > 0:
-                cycle_seconds = rec.standard_cycle_time * 60.0
+                cycle_seconds = rec.standard_cycle_time
 
             elif rec.cycle_time and rec.cycle_time > 0:
-                cycle_seconds = rec.cycle_time * 60.0
+                cycle_seconds = rec.cycle_time
 
             if cycle_seconds > 0 and rec.cavity > 0:
                 rec.standard_production_per_hour = (3600.0 / cycle_seconds) * rec.cavity
