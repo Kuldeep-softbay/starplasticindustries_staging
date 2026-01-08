@@ -1,4 +1,5 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 
 class PackingMemo(models.Model):
@@ -46,3 +47,25 @@ class PackingMemoLine(models.Model):
         required=True
     )
     quantity = fields.Float(required=True)
+
+class StockMove(models.Model):
+    _inherit = 'stock.move'
+
+    def action_open_packing_memo_wizard(self):
+        self.ensure_one()
+
+        if not self.picking_id or not self.picking_id.sale_id:
+            raise UserError(_("Packing Memo can be created only for Sale Orders."))
+
+        return {
+            'name': _('Generate Packing Memo'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'packing.memo.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_sale_id': self.picking_id.sale_id.id,
+                'default_move_id': self.id,
+                'default_picking_id': self.picking_id.id,
+            }
+        }

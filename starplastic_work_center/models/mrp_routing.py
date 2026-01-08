@@ -18,7 +18,10 @@ class MrpRoutingWorkcenter(models.Model):
     standard_cycle_time_hourly = fields.Float(
         string="Std Cycle Time band for hourly entery")
     standard_production_per_hour = fields.Float(
-        string="Std Production per Hour")
+        string="Std Production per Hour",
+        compute="_compute_standard_production_per_hour",
+        store=True
+    )
     cycle_time_tolerance = fields.Float(string="Cycle Time Tolerance (%)")
     cycle_time_manual_seconds = fields.Float(
         string="Cycle Time Manual (Seconds)"
@@ -29,6 +32,22 @@ class MrpRoutingWorkcenter(models.Model):
         compute="_compute_time_cycle_manual",
         store=True
     )
+
+    @api.depends('cavity', 'cycle_time', 'standard_cycle_time')
+    def _compute_standard_production_per_hour(self):
+        for rec in self:
+            cycle_seconds = 0.0
+
+            if rec.standard_cycle_time and rec.standard_cycle_time > 0:
+                cycle_seconds = rec.standard_cycle_time * 60.0
+
+            elif rec.cycle_time and rec.cycle_time > 0:
+                cycle_seconds = rec.cycle_time * 60.0
+
+            if cycle_seconds > 0 and rec.cavity > 0:
+                rec.standard_production_per_hour = (3600.0 / cycle_seconds) * rec.cavity
+            else:
+                rec.standard_production_per_hour = 0.0
 
     @api.depends('cycle_time_manual_seconds')
     def _compute_time_cycle_manual(self):

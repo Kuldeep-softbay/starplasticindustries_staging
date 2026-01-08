@@ -96,6 +96,16 @@
                    context="{'default_production_id': production_id, 'default_shift_id': id}"
                    views="[(list, ref('starplastic_work_center.view_work_center_hourly_entry_master_list'))]"/>
           </group>
+          <group string="Downtime Reasons Summary">
+            <field name="downtime_summary_ids" mode="list">
+              <list>
+                  <field name="hour_slot"/>
+                  <field name="reason_id"/>
+                  <field name="sub_reason_id"/>
+                  <field name="total_duration"/>
+                </list>
+            </field>
+        </group>
         </sheet>
       </form>
     </field>

@@ -1,5 +1,6 @@
 from odoo import api, fields, models, _
 from datetime import datetime
+from odoo.exceptions import UserError, ValidationError
 
 class ProductTemplate(models.Model):
     _inherit = "product.product"
@@ -12,12 +13,6 @@ class StockPicking(models.Model):
 
     invoice_number = fields.Char(string="Invoice Number")
     rm_add_date = fields.Date(string="Date")
-    row_type = fields.Selection([
-        ('hd_injection', 'HD Injection'),
-        ('injection', 'Injection'),
-        ('hd_blowing', 'HD Blowing'),
-        ('other', 'Other')
-    ], string='Row Type', default='other')
     supplier_batch_number = fields.Char(string='Supplier Batch Number')
     internal_batch_number = fields.Char(
         string='Internal Batch Number',
@@ -65,28 +60,34 @@ class StockPicking(models.Model):
             ].search_count([
                 ('picking_id', '=', picking.id)
             ])
+    
+    def action_open_stock_move(self):
+        self.ensure_one()
 
-    def action_open_packing_memo_wizard(self):
-        sale_id = False
-        if self.origin:
-            sale = self.env['sale.order'].search([('name', '=', self.origin)], limit=1)
-            if sale:
-                sale_id = sale.id
-
-        ctx = {'default_picking_id': self.id}
-        if sale_id:
-            ctx['default_sale_id'] = sale_id
+        picking = self.env['stock.picking'].search(
+            [('sale_id', '=', self.sale_id.id)],
+            limit=1
+        )
+        if not picking:
+            raise ValidationError("No delivery order found for this Sale Order.")
 
         return {
             'type': 'ir.actions.act_window',
-            'res_model': 'packing.memo.wizard',
+            'name': 'Detailed Operations',
+            'res_model': 'stock.move',
             'view_mode': 'form',
+            'views': [(self.env.ref('stock.view_stock_move_operations').id, 'form')],
             'target': 'new',
+            'res_id': picking.move_ids_without_package[:1].id,
             'context': {
-                'default_picking_id': self.id,
-                'default_sale_id': sale_id,
+                'active_id': picking.id,
+                'active_model': 'stock.picking',
+                'from_packing_memo': True,
+                'packing_memo_wizard_id': self.id,
             }
         }
+
+
 
     @api.depends('move_ids.product_qty')
     def _compute_total_product_qty(self):
@@ -96,42 +97,58 @@ class StockPicking(models.Model):
     @api.depends(
         'picking_type_id.code',
         'move_ids_without_package.product_id',
-        'move_ids_without_package.product_id.default_code'
+        'move_ids_without_package.product_id.product_tmpl_id.default_code'
     )
     def _compute_internal_batch_number(self):
         for picking in self:
+
+            # Already generated → skip
             if picking.internal_batch_number:
                 continue
 
-            if not picking.picking_type_id or picking.picking_type_id.code != 'incoming':
+            # Only Incoming Receipts
+            if picking.picking_type_id.code != 'incoming':
                 continue
 
-            raw_material_code = 'RM00'
+            # Must have at least one move
+            if not picking.move_ids_without_package:
+                continue
 
-            if picking.move_ids_without_package:
-                first_move = picking.move_ids_without_package[0]
-                product = first_move.product_id
+            # Take first move product
+            move = picking.move_ids_without_package[0]
+            product = move.product_id
 
-                if product and product.default_code:
-                    raw_material_code = product.default_code.strip()[:4]
+            if not product:
+                continue
 
+            product_code = product.product_tmpl_id.default_code
+
+            if not product_code:
+                raise UserError(
+                    _("Product must have an Internal Reference (Product Code) to generate Internal Batch Number.")
+                )
+
+            # Year (last 2 digits)
             year = datetime.now().strftime('%y')
 
-            prefix = f"{raw_material_code}{year}"
+            # Prefix: R00126
+            prefix = f"{product_code}{year}"
 
-            last = self.search(
-                [('internal_batch_number', 'ilike', f"{prefix}%")],
-                order='id desc',
+            # Find last sequence for same prefix
+            last_picking = self.search(
+                [('internal_batch_number', 'like', f"{prefix}%")],
+                order='internal_batch_number desc',
                 limit=1
             )
 
-            if last and last.internal_batch_number:
+            if last_picking and last_picking.internal_batch_number:
                 try:
-                    last_seq = int(last.internal_batch_number[-4:])
+                    last_seq = int(last_picking.internal_batch_number[-4:])
                     next_seq = str(last_seq + 1).zfill(4)
-                except ValueError:
+                except Exception:
                     next_seq = '0001'
             else:
                 next_seq = '0001'
 
+            # Final value
             picking.internal_batch_number = f"{prefix}{next_seq}"

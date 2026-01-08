@@ -11,8 +11,8 @@ class FgStoreReport(models.Model):
     computation_key = fields.Char(string='Computation Key', index=True)
 
     date = fields.Date(string='Date')
-    partner_id = fields.Many2one('res.partner', string='Party')
-    wo_no = fields.Char(string='W.O No')
+    party_id = fields.Many2one('job.party.work', string='Party')
+    batch_number = fields.Char(string='Batch Number')
     pmemo = fields.Char(string='Pmemo')
     invoice_number = fields.Char(string='Invoice Number')
     unit_weight = fields.Float(string='Unit Weight')
@@ -39,8 +39,9 @@ class FgStoreReportWizard(models.TransientModel):
                             default=lambda self: fields.Date.context_today(self))
     date_to = fields.Date(string='Date To', required=True,
                           default=lambda self: fields.Date.context_today(self))
-    partner_id = fields.Many2one('res.partner', string='Party')
-    product_id = fields.Many2one('product.product', string='Item Name')
+    party_id = fields.Many2one('job.party.work', string='Party')
+    product_id = fields.Many2one('product.product', string='Item Name',
+                                domain="[('purchase_ok','=',False),('sale_ok','=',True)]")
     stock_type = fields.Selection(
         [
             ('fg', 'Finished Goods'),
@@ -59,8 +60,8 @@ class FgStoreReportWizard(models.TransientModel):
         ]
         if self.product_id:
             domain.append(('product_id', '=', self.product_id.id))
-        if self.partner_id:
-            domain.append(('partner_id', '=', self.partner_id.id))
+        if self.party_id:
+            domain.append(('party_id', '=', self.party_id.id))
         # stock_type is custom, adapt as needed
         return domain
 
@@ -97,8 +98,8 @@ class FgStoreReportWizard(models.TransientModel):
             report_env.create({
                 'computation_key': computation_key,
                 'date': mv.date.date(),
-                'partner_id': mv.partner_id.id or (mv.picking_id.partner_id.id if mv.picking_id else False),
-                'wo_no': mv.origin,  # you can map to your W.O field
+                'party_id': mv.party_id.id if mv.party_id else False,
+                'batch_number': mv.lot_ids[:1].name if mv.lot_ids else '',
                 'pmemo': mv.reference or '',  # adapt
                 'invoice_number': mv.picking_id.invoice_number if mv.picking_id else '',
                 'unit_weight': mv.product_id.weight or 0.0,

@@ -8,7 +8,7 @@
                 <group>
                     <group>
                         <field name="date"/>
-                        <field name="product_tmpl_id" string="RM Type"/>
+                        <field name="rm_type" string="RM Type"/>
                     </group>
                     <group>
                         <field name="party_id"/>
@@ -35,16 +35,18 @@
         <field name="arch" type="xml">
             <list string="RM Stock Sheet" create="false" edit="false" delete="false">
                 <!-- <field name="date"/> -->
-                <field name="party_id"/>
-                <field name="location_id"/>
+                <field name="party_id" optional="show"/>
+                <field name="location_id" optional="show"/>
                 <!-- <field name="rm_type"/> -->
-                <field name="product_tmpl_id" string="RM Type"/>
-                <field name="grade"/>
-                <field name="mfi"/>
-                <field name="batch"/>
-                <field name="bag_qty"/>
-                <field name="kgs"/>
-                <field name="total_kgs"/>
+                <field name="rm_type" string="RM Type" optional="show"/>
+                <field name="grade" optional="show" string="Grade"/>
+                <!-- <field name="rm_grade" optional="show" string="RM Grade"/> -->
+                <field name="mfi" optional="show"/>
+                <field name="batch" optional="show"/>
+                <field name="internal_batch" optional="show"/>
+                <field name="bag_qty" optional="show"/>
+                <field name="kgs" optional="show"/>
+                <field name="total_kgs" optional="show"/>
             </list>
         </field>
     </record>

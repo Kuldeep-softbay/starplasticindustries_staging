@@ -87,4 +87,3 @@ class PurchaseMonthlyReport(models.Model):
                 GROUP BY pt.name
             )
         """)
-

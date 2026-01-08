@@ -5,6 +5,7 @@
     "data": [
         "security/ir.model.access.csv",
         "report/purchase_report_views.xml",
+        "views/purchase_order_views.xml",
     ],
     "installable": True,
     "application": False,

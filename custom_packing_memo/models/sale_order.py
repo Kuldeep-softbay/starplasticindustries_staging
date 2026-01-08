@@ -30,12 +30,15 @@ class SaleOrder(models.Model):
             return {'details': [], 'summary': []}
 
         details = []
-        summary_map = defaultdict(float)
+
+        summary_qty_map = defaultdict(float)
+        summary_lot_map = {}
 
         for lot_id_str, qty in selections.items():
             lot = self.env['stock.lot'].browse(int(lot_id_str))
             product = lot.product_id
 
+            # Details table → per lot
             details.append({
                 'lot_name': lot.name,
                 'product_display_name': product.display_name,
@@ -43,20 +46,30 @@ class SaleOrder(models.Model):
                 'qty': qty,
             })
 
-            summary_map[(lot.name, product.id)] += qty
+            # Summary → per product
+            summary_qty_map[product.id] += qty
 
-        summary = [{
-            'lot_name': lot_name,
-            'product_display_name': self.env['product.product'].browse(prod_id).display_name,
-            'default_code': self.env['product.product'].browse(prod_id).default_code,
-            'qty': total_qty,
-        } for (lot_name, prod_id), total_qty in summary_map.items()]
+            # Store ANY one batch number per product (first wins)
+            if product.id not in summary_lot_map:
+                summary_lot_map[product.id] = lot.name
+
+        # Build summary table (ONE row per product)
+        summary = []
+        for product_id, total_qty in summary_qty_map.items():
+            product = self.env['product.product'].browse(product_id)
+            summary.append({
+                'lot_name': summary_lot_map.get(product_id),  # representative batch
+                'product_display_name': product.display_name,
+                'default_code': product.default_code,
+                'qty': total_qty,
+            })
 
         return {
             'details': details,
             'summary': summary,
         }
 
+    
     def write(self, vals):
         res = super().write(vals)
 

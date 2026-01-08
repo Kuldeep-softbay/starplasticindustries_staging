@@ -91,6 +91,44 @@ class WCShift(models.Model):
         compute='_compute_total_produced_qty',
         store=True
     )
+    downtime_summary_ids = fields.One2many(
+        'work.center.shift.downtime.summary',
+        'shift_id',
+        string='Downtime Reasons Summary',
+        compute='_compute_downtime_summary',
+        store=True
+    )
+
+    @api.depends(
+        'entry_ids.time',
+        'entry_ids.reason_line_ids.reason_id',
+        'entry_ids.reason_line_ids.sub_reason_id',
+        'entry_ids.reason_line_ids.duration_minutes',
+    )
+    def _compute_downtime_summary(self):
+        for shift in self:
+            shift.downtime_summary_ids = [(5, 0, 0)]
+            summary = {}
+
+            for entry in shift.entry_ids:
+                for line in entry.reason_line_ids:
+                    key = (
+                        entry.time,
+                        line.reason_id.id,
+                        line.sub_reason_id.id or False
+                    )
+                    summary[key] = summary.get(key, 0.0) + (line.duration_minutes or 0.0)
+
+            records = []
+            for (hour_slot, reason_id, sub_reason_id), total in summary.items():
+                records.append((0, 0, {
+                    'hour_slot': hour_slot,
+                    'reason_id': reason_id,
+                    'sub_reason_id': sub_reason_id,
+                    'total_duration': total,
+                }))
+
+            shift.downtime_summary_ids = records
 
     # =========================
     # COMPUTE

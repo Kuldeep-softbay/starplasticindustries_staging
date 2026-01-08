@@ -11,7 +11,7 @@
                         <field name="date_to"/>
                     </group>
                     <group>
-                        <field name="partner_id"/>
+                        <field name="party_id"/>
                         <field name="product_id"/>
                         <field name="stock_type"/>
                     </group>
@@ -36,8 +36,8 @@
         <field name="arch" type="xml">
             <list string="FG Stock Report" create="false" edit="false">
                 <field name="date"/>
-                <field name="partner_id"/>
-                <field name="wo_no"/>
+                <field name="party_id"/>
+                <field name="batch_number"/>
                 <field name="pmemo"/>
                 <field name="invoice_number"/>
                 <field name="unit_weight"/>
@@ -55,7 +55,7 @@
         <field name="arch" type="xml">
             <search string="FG Stock Report">
                 <field name="date"/>
-                <field name="partner_id"/>
+                <field name="party_id"/>
                 <field name="product_id"/>
             </search>
         </field>

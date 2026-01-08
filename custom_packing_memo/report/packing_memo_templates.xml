@@ -12,6 +12,7 @@
                     <t t-set="details" t-value="payload.get('details', [])"/>
                     <t t-set="summary" t-value="payload.get('summary', [])"/>
 
+
                     <!-- ================= HEADER (REPLACED) ================= -->
                     <div class="header-box border border-dark p-2 mb-3">
                         <div class="row">

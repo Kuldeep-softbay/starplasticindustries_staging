@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
-from datetime import datetime, time
 from odoo.exceptions import UserError
 
 
@@ -54,17 +53,21 @@ class ProductionReportWizard(models.TransientModel):
         product = self.product_id
         lot = self.lot_id
 
+        # 🔹 Production (finished goods)
         production_moves = StockMove.search([
             ('state', '=', 'done'),
             ('product_id', '=', product.id),
             ('move_line_ids.lot_id', '=', lot.id),
             ('location_dest_id.usage', '=', 'internal'),
         ])
+
         production_qty = sum(
             production_moves.mapped('move_line_ids').filtered(
                 lambda ml: ml.lot_id == lot
             ).mapped('qty_done')
         )
+
+        # 🔹 Dispatch
         dispatch_moves = StockMove.search([
             ('state', '=', 'done'),
             ('product_id', '=', product.id),
@@ -77,6 +80,8 @@ class ProductionReportWizard(models.TransientModel):
                 lambda ml: ml.lot_id == lot
             ).mapped('qty_done')
         )
+
+        # 🔹 Rejection
         scrap_moves = Scrap.search([
             ('state', '=', 'done'),
             ('product_id', '=', product.id),
@@ -84,6 +89,7 @@ class ProductionReportWizard(models.TransientModel):
         ])
 
         reject_qty = sum(scrap_moves.mapped('scrap_qty'))
+
         balance = production_qty - dispatch_qty - reject_qty
 
         Report.create({

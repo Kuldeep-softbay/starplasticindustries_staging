@@ -4,7 +4,7 @@
         <field name="name">rm.real.store.book.wizard.form</field>
         <field name="model">rm.real.store.book.wizard</field>
         <field name="arch" type="xml">
-            <form string="RM Real Store Book Report">
+            <form string="RM Red Stock Book Report">
                 <group>
                     <group>
                         <field name="date_from"/>
@@ -37,7 +37,7 @@
         <field name="name">rm.real.store.book.report.list</field>
         <field name="model">rm.real.store.book.report</field>
         <field name="arch" type="xml">
-            <list string="RM Real Store Book" create="false" edit="false" delete="false">
+            <list string="RM Red Stock Book" create="false" edit="false" delete="false">
                 <field name="date" optional="show"/>
                 <field name="particulars" optional="hide"/>
                 <field name="product_id" optional="show"/>
@@ -58,7 +58,7 @@
         <field name="name">rm.real.store.book.report.search</field>
         <field name="model">rm.real.store.book.report</field>
         <field name="arch" type="xml">
-            <search string="RM Real Store Book">
+            <search string="RM Red Stock Book">
                 <field name="date"/>
                 <field name="product_id"/>
                 <field name="vendor_id"/>
@@ -72,7 +72,7 @@
 
     <!-- Action to open wizard -->
     <record id="action_rm_real_store_book_wizard" model="ir.actions.act_window">
-        <field name="name">RM Real Store Book Report</field>
+        <field name="name">RM Red Stock Book Report</field>
         <field name="res_model">rm.real.store.book.wizard</field>
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_rm_real_store_book_wizard_form"/>
