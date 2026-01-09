@@ -22,7 +22,6 @@ class StockMove(models.Model):
     def action_generate_packing_memo(self):
         self.ensure_one()
 
-        # Only done / ready moves
         move_lines = self.move_line_ids.filtered(
             lambda l: l.quantity > 0 and l.lot_id
         )
@@ -30,14 +29,12 @@ class StockMove(models.Model):
         if not move_lines:
             raise ValidationError(_("Nothing to generate packing memo."))
 
-        # Build packing memo data
         selections = {}
         for line in move_lines:
             lot_id = str(line.lot_id.id)
             selections.setdefault(lot_id, 0.0)
             selections[lot_id] += line.quantity
 
-        # Call report
         sale_order = self.picking_id.sale_id
         if not sale_order:
             raise UserError(_("No Sale Order linked."))
@@ -47,8 +44,6 @@ class StockMove(models.Model):
         ).with_context(
             packing_memo_selections=selections
         ).report_action(sale_order)
-
-
 
 
 class StockMoveLine(models.Model):

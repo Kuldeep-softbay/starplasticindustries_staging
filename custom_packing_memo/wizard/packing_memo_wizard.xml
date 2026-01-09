@@ -1,37 +1,16 @@
 <odoo>
-
-    <record id="view_packing_memo_wizard_form" model="ir.ui.view">
-        <field name="name">packing.memo.wizard.form</field>
-        <field name="model">packing.memo.wizard</field>
+    <record id="view_stock_move_form_add_packing_memo" model="ir.ui.view">
+        <field name="name">stock.move.form.add.packing.memo</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock.view_stock_move_operations"/>
         <field name="arch" type="xml">
-            <form string="Generate Packing Memo">
-                <sheet>
-                    <group>
-                        <button name="action_open_stock_move"
-                            type="object"
-                            string="Open Detailed Operations"
-                            class="btn-primary"/>
-                        <field name="picking_id" readonly="1"/>
-                    </group>
-                </sheet>
-            </form>
+            <xpath expr="//form" position="inside">
+            <button name="action_generate_packing_memo"
+                    type="object"
+                    string="Generate Packing Memo"
+                    class="btn-primary"
+                    />
+        </xpath>
         </field>
     </record>
-<record id="view_stock_move_form_add_packing_memo" model="ir.ui.view">
-    <field name="name">stock.move.form.add.packing.memo</field>
-    <field name="model">stock.move</field>
-    <field name="inherit_id" ref="stock.view_stock_move_operations"/>
-    <field name="arch" type="xml">
-
-        <xpath expr="//form" position="inside">
-            <footer>
-                <button name="action_generate_packing_memo"
-                        type="object"
-                        string="Generate Packing Memo"
-                        class="btn-primary"/>
-            </footer>
-        </xpath>
-    </field>
-</record>
-
 </odoo>

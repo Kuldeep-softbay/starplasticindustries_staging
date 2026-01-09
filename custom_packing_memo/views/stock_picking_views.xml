@@ -41,10 +41,13 @@
                 <button name="action_open_stock_move"
                         type="object"
                         class="oe_stat_button"
-                        icon="fa-dropbox">
+                        icon="fa-dropbox"
+                        invisible="picking_type_code != 'outgoing'">
                     <field name="packing_memo_count"
                            widget="statinfo"
-                           string="Packing Memo"/>
+                           string="Packing Memo"
+                           invisible="picking_type_code != 'outgoing'"
+                           />
                 </button>
             </xpath>
     </field>
