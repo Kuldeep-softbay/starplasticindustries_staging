@@ -11,7 +11,7 @@ _logger = logging.getLogger(__name__)
 # =========================================================
 class RmRealStoreBookReport(models.Model):
     _name = 'rm.real.store.book.report'
-    _description = 'RM Real Store Book Report'
+    _description = 'RM Red Stock Book Report'
     _order = 'date, id'
 
     computation_key = fields.Char(index=True)
@@ -37,7 +37,7 @@ class RmRealStoreBookReport(models.Model):
 # =========================================================
 class RmRealStoreBookWizard(models.TransientModel):
     _name = 'rm.real.store.book.wizard'
-    _description = 'RM Real Store Book Wizard'
+    _description = 'RM Red Stock Book Wizard'
 
     date_from = fields.Date(
         string='Date From',
@@ -61,7 +61,8 @@ class RmRealStoreBookWizard(models.TransientModel):
 
     product_id = fields.Many2one(
         'product.product',
-        string='Product'
+        string='Product',
+        domain="[('purchase_ok','=',True),('sale_ok','=',False)]"
     )
 
     party_id = fields.Many2one(
@@ -90,6 +91,8 @@ class RmRealStoreBookWizard(models.TransientModel):
             ('state', '=', 'done'),
             ('date', '>=', self._datetime_from()),
             ('date', '<=', self._datetime_to()),
+            ('product_id.product_tmpl_id.purchase_ok', '=', True),
+            ('product_id.product_tmpl_id.sale_ok', '=', False),
         ]
 
         if self.product_id:
@@ -115,6 +118,8 @@ class RmRealStoreBookWizard(models.TransientModel):
         domain = [
             ('state', '=', 'done'),
             ('date', '<', self._datetime_from()),
+            ('product_id.product_tmpl_id.purchase_ok', '=', True),
+            ('product_id.product_tmpl_id.sale_ok', '=', False),
         ]
 
         if self.product_id:
@@ -139,7 +144,7 @@ class RmRealStoreBookWizard(models.TransientModel):
         moves = Move.search(self._opening_domain())
 
         _logger.info(
-            "RM Real Store Book opening balance moves: %s",
+            "RM Red Stock Book opening balance moves: %s",
             len(moves)
         )
 
@@ -159,6 +164,11 @@ class RmRealStoreBookWizard(models.TransientModel):
                     opening -= qty
 
         return opening
+
+    def _get_grade_name(self, product):
+        return ", ".join(
+            product.product_template_variant_value_ids.mapped('name')
+        )
 
     # -----------------------------------------------------
     # Main Action
@@ -205,11 +215,11 @@ class RmRealStoreBookWizard(models.TransientModel):
                 'particulars': mv.picking_id.origin if mv.picking_id else ' ',
                 'product_id': mv.product_id.id,
                 'batch': mv.picking_id.internal_batch_number if mv.picking_id else '',
-                'grade': getattr(mv.product_id, 'grade', '') or '',
+                'grade': self._get_grade_name(mv.product_id),
                 'vendor_id': mv.partner_id.id
                              if mv.partner_id else
                              (mv.picking_id.partner_id.id if mv.picking_id else False),
-                'invoice_no': getattr(mv.picking_id, 'invoice_ref', '') or '',
+                'invoice_no': mv.picking_id.invoice_number if mv.picking_id else '',
                 'received_qty': received,
                 'pmemo_no': mv.reference or (mv.picking_id.name if mv.picking_id else ''),
                 'production_qty': production,
@@ -221,7 +231,7 @@ class RmRealStoreBookWizard(models.TransientModel):
 
         return {
             'type': 'ir.actions.act_window',
-            'name': _('RM Real Store Book Report'),
+            'name': _('RM Red Stock Book Report'),
             'res_model': 'rm.real.store.book.report',
             'view_mode': 'list,search',
             'target': 'current',
