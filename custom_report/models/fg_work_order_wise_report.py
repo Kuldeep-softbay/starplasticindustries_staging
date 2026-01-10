@@ -31,13 +31,22 @@ class FgWorkOrderWiseWizard(models.TransientModel):
     _description = 'FG Work Order Wise Wizard'
 
     party_id = fields.Many2one('job.party.work', string='Party')
-    product_id = fields.Many2one('product.product', string='Item')
+    product_id = fields.Many2one('product.product', string='Item',
+                                domain="[('purchase_ok','=',False),('sale_ok','=',True)]")
 
     lot_id = fields.Many2one(
         'stock.lot',
         string='Batch. No',
-        domain="[('product_id', '=', product_id)]"
+        domain=lambda self: self._get_lot_domain()
     )
+
+    def _get_lot_domain(self):
+        domain = []
+        if self.product_id:
+            domain.append(('product_id', '=', self.product_id.id))
+        domain.append(('quant_ids.quantity', '>', 0))
+        domain.append(('quant_ids.location_id.usage', '=', 'internal'))
+        return domain
 
     location_id = fields.Many2one(
         'stock.location',
@@ -58,6 +67,20 @@ class FgWorkOrderWiseWizard(models.TransientModel):
             available_for_packing = 0.0
         unit_weight = float(getattr(product, 'product_weight_sale', None) or getattr(product, 'weight', 0.0) or 0.0)
         return actual, available_for_packing, unit_weight
+
+    def _compute_lot_stock(self, product, lot, location):
+        Quant = self.env['stock.quant']
+        domain = [
+            ('product_id', '=', product.id),
+            ('lot_id', '=', lot.id),
+            ('quantity', '>', 0),
+        ]
+        if location:
+            domain.append(('location_id', 'child_of', location.id))
+
+        quants = Quant.search(domain)
+        actual = sum(quants.mapped('quantity'))
+        return actual
 
     def action_show_report(self):
         self.ensure_one()
@@ -85,6 +108,14 @@ class FgWorkOrderWiseWizard(models.TransientModel):
             party_id = False
             mo = wo.production_id
             lot = wo.production_id.lot_producing_id
+            if not lot:
+                continue
+
+            actual = self._compute_lot_stock(product, lot, self.location_id)
+
+            # Zero stock batch skip
+            if actual <= 0:
+                continue
             if self.party_id:
                 party_id = self.party_id.id
             elif mo and hasattr(mo, 'sale_order_id') and mo.sale_order_id:
@@ -94,7 +125,7 @@ class FgWorkOrderWiseWizard(models.TransientModel):
                 'computation_key': computation_key,
                 'party_id': party_id,
                 'product_id': product.id,
-                'lot_id': lot.id if lot else False,
+                'lot_id': lot.id,
                 'actual_stock': actual,
                 'stock_available_for_packing': avail,
                 'unit_weight': unit_weight,

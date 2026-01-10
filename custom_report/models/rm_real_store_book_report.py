@@ -185,7 +185,7 @@ class RmRealStoreBookWizard(models.TransientModel):
         moves = Move.search(self._base_domain(), order='date, id')
 
         _logger.info(
-            "RM Real Store Book report moves: %s",
+            "RM Red Stock Book Report moves: %s",
             len(moves)
         )
 
