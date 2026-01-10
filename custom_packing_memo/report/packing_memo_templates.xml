@@ -132,7 +132,7 @@
                                         </t>
                                     </td>
                                     <td>
-                                        <t t-esc="o.remark or ''"/>
+                                        <t t-esc="''"/>
                                     </td>
                                     <td class="text-right">
                                         <t t-esc="d['qty']"/>
@@ -174,7 +174,7 @@
                                     </t>
                                 </td>
                                 <td>
-                                    <t t-esc="o.remark or ''"/>
+                                    <t t-esc="''"/>
                                 </td>
                                 <td class="text-right">
                                     <t t-esc="s['qty']"/>
