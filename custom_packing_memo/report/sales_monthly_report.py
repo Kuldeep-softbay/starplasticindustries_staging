@@ -23,7 +23,15 @@ class SalesMonthlyReport(models.Model):
                     MIN(sm.id) AS id,
                     sm.product_id,
                     pt.weight AS weight,
-                    COALESCE(sol.price_unit, 0.0) AS price,
+
+                    -- Sale price (take latest / max safely)
+                    (
+                        SELECT MAX(sol.price_unit)
+                        FROM sale_order_line sol
+                        JOIN sale_order so ON so.id = sol.order_id
+                        WHERE sol.product_id = sm.product_id
+                        AND so.state IN ('sale','done')
+                    ) AS price,
 
                     -- Opening Stock
                     SUM(
@@ -48,7 +56,7 @@ class SalesMonthlyReport(models.Model):
                         END
                     ) AS production_qty,
 
-                    -- Dispatch / Outgoing
+                    -- Dispatch / Sales
                     SUM(
                         CASE
                             WHEN sm.date >= DATE_TRUNC('month', CURRENT_DATE)
@@ -74,10 +82,9 @@ class SalesMonthlyReport(models.Model):
                 JOIN stock_location dest ON dest.id = sm.location_dest_id
                 JOIN product_product pp ON pp.id = sm.product_id
                 JOIN product_template pt ON pt.id = pp.product_tmpl_id
-                LEFT JOIN sale_order_line sol ON sol.product_id = pp.id
 
                 WHERE sm.state = 'done'
 
-                GROUP BY sm.product_id, pt.weight, sol.price_unit
+                GROUP BY sm.product_id, pt.weight
             )
         """)
