@@ -11,7 +11,16 @@
                 class="oe_stat_button"
                 icon="fa-clock-o">
           <field name="hourly_entry_count" widget="statinfo" string="Hourly Entries"/>
-        </button></xpath>
+        </button>
+      </xpath>
+      <xpath expr="//div[@name='button_box']" position="inside">
+                <button type="object"
+                        name="action_open_pmemo"
+                        class="oe_stat_button"
+                        icon="fa-file-text-o">
+                    <field name="pmemo_count" widget="statinfo" string="P-Memo"/>
+                </button>
+            </xpath>
     </field>
   </record>
 </odoo>

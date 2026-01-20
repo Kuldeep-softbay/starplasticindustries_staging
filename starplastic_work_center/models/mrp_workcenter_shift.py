@@ -6,6 +6,8 @@ class WCShiftTemplate(models.Model):
     _name = 'wc.shift.template'
     _description = 'Shift Template (8-hour patterns)'
     _order = 'sequence, id'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
 
     name = fields.Char(required=True)
     code = fields.Selection(

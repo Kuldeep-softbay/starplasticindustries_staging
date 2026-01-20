@@ -83,6 +83,7 @@ class JobPartyWork(models.Model):
     _name = 'job.party.work'
     _description = 'Job Party Work'
     _rec_name = 'name'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
 
     name = fields.Char('Job Party Name')

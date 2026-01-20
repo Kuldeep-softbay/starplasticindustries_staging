@@ -21,6 +21,7 @@
         # 'report/work_order_report.xml',
         'views/res_company_views.xml',
         'views/sale_order_line_views.xml',
+        'views/production_memo_views.xml',
     ],
     'installable': True,
     'application': False,

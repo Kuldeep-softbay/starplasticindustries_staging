@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- FORM VIEW -->
+    <record id="view_production_memo_form" model="ir.ui.view">
+        <field name="name">production.memo.form</field>
+        <field name="model">production.memo</field>
+        <field name="arch" type="xml">
+            <form string="Production Memo">
+                <sheet>
+                    <group col="2">
+                        <group>
+                            <field name="date"/>
+                            <field name="production_id"/>
+                            <field name="machine_id"/>
+                        </group>
+                        <group>
+                            <field name="product_id"/>
+                            <field name="lot_id"/>
+                            <field name="unit_weight"/>
+                        </group>
+                    </group>
+
+                    <separator string="RAW MATERIAL SUMMARY"/>
+
+                    <group col="4">
+                        <field name="rm_required_qty" readonly="1" string="RM Required (Kg)"/>
+                        <field name="rm_issued_qty" readonly="1" string="RM Issued (Kg)"/>
+                        <field name="rm_to_be_made" readonly="1" string="RM To Be Made (Kg)"/>
+                        <field name="rm_return_qty" readonly="1" string="RM Returned (Kg)"/>            
+                        <field name="rm_loss_qty" string="Loss (Kg)"/>
+                        <field name="rm_loss_percent" string="Loss (%)"/>
+                    </group>
+
+                    <separator string="PRODUCTION RESULT"/>
+
+                    <group col="3">
+                        <field name="fg_qty" readonly="1"/>
+                        <field name="fg_weight" readonly="1"/>
+                        <field name="yield_percent" readonly="1"/>
+                    </group>
+
+                    <separator string="RAW MATERIAL DETAILS"/>
+
+                    <!-- RAW MATERIAL DETAILS -->
+                    <field name="rm_lines">
+                        <list editable="bottom">
+                            <field name="rm_type" string="Raw Material"/>
+                            <field name="uom_id" string="UoM"/>
+                            <field name="bom_qty" string="RM Required (BOM)"/>
+                            <field name="issued_qty" string="RM Issued"/>
+                            <field name="return_qty" string="RM Returned"/>
+                            <field name="loss_qty" string="Loss (Kg)"/>
+                        </list>
+                        <form>
+                            <sheet>
+                                <group>
+                                    <field name="rm_type" string="Raw Material"/>
+                                    <field name="uom_id" string="UoM"/>
+                                    <field name="bom_qty" string="RM Required (BOM)"/>
+                                    <field name="issued_qty" string="RM Issued"/>
+                                    <field name="return_qty" string="RM Returned"/>
+                                    <field name="loss_qty" string="Loss (Kg)"/>
+                                </group>
+                            </sheet>
+                        </form>
+                    </field>
+
+                </sheet>
+
+                <chatter>
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </chatter>
+
+            </form>
+        </field>
+    </record>
+
+    <!-- TREE VIEW -->
+    <record id="view_production_memo_tree" model="ir.ui.view">
+        <field name="name">production.memo.list</field>
+        <field name="model">production.memo</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date"/>
+                <field name="production_id"/>
+                <field name="product_id"/>
+                <field name="rm_required_qty"/>
+                <field name="rm_issued_qty"/>
+                <field name="rm_return_qty"/>
+                <field name="rm_loss_qty"/>
+                <field name="yield_percent"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ACTION -->
+    <record id="action_production_memo" model="ir.actions.act_window">
+        <field name="name">Production Memo</field>
+        <field name="res_model">production.memo</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- MENU -->
+    <menuitem id="menu_production_memo"
+              name="Production Memo"
+              parent="mrp.menu_mrp_manufacturing"
+              action="action_production_memo"
+              sequence="60"/>
+
+</odoo>

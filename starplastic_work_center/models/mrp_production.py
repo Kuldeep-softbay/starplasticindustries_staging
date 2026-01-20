@@ -33,6 +33,21 @@ class MrpProduction(models.Model):
         string="Unit Weight (KG)",
         compute="_compute_unit_weight_kg",
         store=True)
+
+    pmemo_ids = fields.One2many(
+        'production.memo',
+        'production_id',
+        string='Production Memos'
+    )
+    pmemo_count = fields.Integer(
+        compute='_compute_pmemo_count',
+        string='P-Memo Count'
+    )
+
+    def _compute_pmemo_count(self):
+        for rec in self:
+            rec.pmemo_count = len(rec.pmemo_ids)
+
     # --------------------------------
     # Convert Unit Weight Gram → KG
     # --------------------------------
@@ -127,3 +142,16 @@ class MrpProduction(models.Model):
         action['domain'] = [('production_id', '=', self.id)]
         action['context'] = {'default_production_id': self.id}
         return action
+
+    def action_open_pmemo(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Production Memo',
+            'res_model': 'production.memo',
+            'view_mode': 'list,form',
+            'domain': [('production_id', '=', self.id)],
+            'context': {
+                'default_production_id': self.id
+            }
+        }

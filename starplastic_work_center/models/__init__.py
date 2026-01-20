@@ -9,3 +9,4 @@ from . import mrp_shift_management
 from . import mrp_workcenter_shift
 from . import res_company
 from . import sale_order_line
+from . import production_memo

@@ -4,12 +4,15 @@ class WcDowntimeReason(models.Model):
     _name = 'wc.downtime.reason'
     _description = 'Downtime Reason'
 
+
     name = fields.Char(required=True, string='Reason')
 
 
 class WcDowntimeSubreason(models.Model):
     _name = 'wc.downtime.subreason'
     _description = 'Downtime Sub Reason'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
 
     name = fields.Char(required=True, string='Sub Reason')
     reason_id = fields.Many2one('wc.downtime.reason', string='Reason', required=True)
@@ -19,6 +22,8 @@ class WorkCenterShiftDowntimeSummary(models.Model):
     _name = 'work.center.shift.downtime.summary'
     _description = 'Downtime Summary'
     _order = 'hour_slot, reason_id'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
 
     shift_id = fields.Many2one(
         'work.center.shift',

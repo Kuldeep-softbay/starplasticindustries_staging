@@ -87,6 +87,11 @@
                    views="[(list, ref('starplastic_work_center.view_work_center_hourly_entry_reason_list_inline'))]"/>
           </group>
         </sheet>
+        <chatter>
+            <field name="message_follower_ids"/>
+            <field name="activity_ids"/>
+            <field name="message_ids"/>
+        </chatter>
       </form>
     </field>
   </record>
@@ -103,6 +108,11 @@
             <field name="name"/>
           </group>
         </sheet>
+        <chatter>
+            <field name="message_follower_ids"/>
+            <field name="activity_ids"/>
+            <field name="message_ids"/>
+        </chatter>
       </form>
     </field>
   </record>

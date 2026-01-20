@@ -5,6 +5,8 @@ class WorkCenterHourlyEntry(models.Model):
     _name = 'work.center.hourly.entry'
     _description = 'Work Center Hourly Entry'
     _order = 'production_id, id'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
 
     production_id = fields.Many2one('mrp.production', string='Production Order', ondelete='cascade', tracking=True)
 
@@ -209,6 +211,8 @@ class WorkCenterHourlyEntryReasonLine(models.Model):
     _name = 'work.center.hourly.entry.reason.line'
     _description = 'Hourly Entry Reason (Persistent)'
     _order = 'id'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
 
     hourly_entry_id = fields.Many2one(
         'work.center.hourly.entry',
