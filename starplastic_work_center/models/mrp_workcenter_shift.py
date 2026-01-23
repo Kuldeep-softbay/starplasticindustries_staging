@@ -185,6 +185,12 @@ class WCShift(models.Model):
    
     hourly_target_qty = fields.Float(string='Hourly Target (units/hr)', compute='_compute_hourly_target', store=True)
 
+    code = fields.Selection(
+        [('A', 'Shift A'), ('B', 'Shift B'), ('C', 'Shift C')],
+        string='Shift Code',
+        # required=True,
+        help='Code representing the shift (A, B, or C).'
+    )
 
     # =========================
     # ONCHANGE LOGIC

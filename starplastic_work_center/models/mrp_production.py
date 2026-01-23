@@ -145,6 +145,19 @@ class MrpProduction(models.Model):
 
     def action_open_pmemo(self):
         self.ensure_one()
+        workorder = self.env['mrp.workorder'].search([('production_id', '=', self.id)], limit=1)
+        routing_workcenter = workorder.workcenter_id if workorder else None
+
+        # Fetch the routing line associated with the workcenter
+        routing_line = self.env['mrp.routing.workcenter'].search([('workcenter_ids', 'in', routing_workcenter.id)], limit=1) if routing_workcenter else None
+        print(routing_line)
+
+        # Get the raw material used in the production of the product
+        raw_material = self.bom_id.bom_line_ids[0].product_id if self.bom_id.bom_line_ids else None
+
+        # Ensure cavity is fetched correctly, default to 0 if not found
+        mould_cavity = routing_line.cavity if routing_line and hasattr(routing_line, 'cavity') else 0
+
         return {
             'type': 'ir.actions.act_window',
             'name': 'Production Memo',
@@ -152,6 +165,13 @@ class MrpProduction(models.Model):
             'view_mode': 'list,form',
             'domain': [('production_id', '=', self.id)],
             'context': {
-                'default_production_id': self.id
+                'default_production_id': self.id,
+                'default_workcenter_id': routing_workcenter.id if routing_workcenter else False,
+                'default_rm_type': raw_material.id if raw_material else False,
+                'default_mould_cavity': mould_cavity,
+                'default_product_id': self.product_id.id,
+                'default_unit_weight': self.product_id.weight_gm,
+                'default_lot_id': self.move_finished_ids.mapped('move_line_ids.lot_id')[0].id if self.move_finished_ids.mapped('move_line_ids.lot_id') else False,
+                'default_production_qty': self.product_qty,
             }
         }

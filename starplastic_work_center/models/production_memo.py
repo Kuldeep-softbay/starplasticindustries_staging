@@ -9,11 +9,20 @@ class ProductionMemo(models.Model):
 
     date = fields.Date(default=fields.Date.context_today)
     production_id = fields.Many2one('mrp.production', required=True)
+    pmemo_number = fields.Char(string='P-Memo Number')
 
-    machine_id = fields.Many2one('mrp.workcenter')
+    workcenter_id = fields.Many2one('mrp.workcenter', string='Machine Name')
     product_id = fields.Many2one(related='production_id.product_id', store=True, readonly=True)
-    lot_id = fields.Many2one('stock.lot', compute='_compute_lot', store=True)
-    unit_weight = fields.Float(related='product_id.weight_gm', store=True, readonly=True)
+    production_qty = fields.Float(related='production_id.product_qty', store=True, readonly=True, string='Production Qty')
+    lot_id = fields.Many2one('stock.lot', compute='_compute_lot', store=True, readonly=True, string='Batch Number')
+    unit_weight = fields.Float(related='product_id.weight_gm', store=True, readonly=True, string='Product Weight (gm)')
+    rm_type = fields.Many2one(
+        'product.product',
+        string='RM Type',
+        domain="[('purchase_ok','=',True),('sale_ok','=',False)]",
+    )
+    colour = fields.Char(string='Colour')
+    cavity = fields.Integer(string='Mould Cavity')
 
     rm_lines = fields.One2many(
         'production.memo.rm.line',
@@ -21,17 +30,17 @@ class ProductionMemo(models.Model):
         string="Raw Material Details"
     )
 
-    rm_required_qty = fields.Float(compute='_compute_rm_summary', store=True)
-    rm_issued_qty = fields.Float(compute='_compute_rm_summary', store=True)
-    rm_return_qty = fields.Float(compute='_compute_rm_summary', store=True)
-    rm_to_be_made = fields.Float(compute='_compute_rm_summary', store=True, readonly=True)
+    rm_required_qty = fields.Float(compute='_compute_rm_summary', store=True, string='RM Required (Kg)')
+    rm_issued_qty = fields.Float(compute='_compute_rm_summary', store=True, string='RM Issued (Kg)')
+    rm_return_qty = fields.Float(compute='_compute_rm_summary', store=True, string='RM Returned (Kg)')
+    rm_to_be_made = fields.Float(compute='_compute_rm_summary', store=True, readonly=True, string='RM To Be Made (Kg)')
 
-    rm_loss_qty = fields.Float(compute='_compute_loss', store=True)
-    rm_loss_percent = fields.Float(compute='_compute_loss', store=True)
+    rm_loss_qty = fields.Float(compute='_compute_loss', store=True, string='RM Loss (Kg)')
+    rm_loss_percent = fields.Float(compute='_compute_loss', store=True, string='RM Loss (%)')
 
-    fg_qty = fields.Float(compute='_compute_fg', store=True)
-    fg_weight = fields.Float(compute='_compute_fg', store=True)
-    yield_percent = fields.Float(compute='_compute_loss', store=True)
+    fg_qty = fields.Float(compute='_compute_fg', store=True, string='FG Quantity')
+    fg_weight = fields.Float(compute='_compute_fg', store=True, string='FG Weight (Kg)')
+    yield_percent = fields.Float(compute='_compute_loss', store=True, string='Yield (%)')
 
     # --------------------------------------------------
     # RM SUMMARY
