@@ -35,8 +35,8 @@ class RunningCavityReport(models.Model):
     workcenter_id = fields.Many2one('mrp.workcenter', string="Machine")
     shift = fields.Char()
     product_id = fields.Many2one('product.product', string="Item")
-    supervisor1 = fields.Char()
-    supervisor2 = fields.Char()
+    supervisor_one_id = fields.Many2one('res.users', string="Supervisor 1")
+    supervisor_two_id = fields.Many2one('res.users', string="Supervisor 2")
     running_cavity = fields.Integer()
     mould_cavity = fields.Integer()
     action_state = fields.Selection(
@@ -68,8 +68,8 @@ class RunningCavityReport(models.Model):
                     NULL AS workcenter_id,
                     wc_shift.code AS shift,
                     mo.product_id,
-                    wc_shift.supervisor_one_id AS supervisor1,
-                    wc_shift.supervisor_two_id AS supervisor2,
+                    wc_shift.supervisor_one_id AS supervisor_one_id,
+                    wc_shift.supervisor_two_id AS supervisor_two_id,
                     wc_shift.cavity AS running_cavity,
                     wc_shift.cavity AS mould_cavity
                 FROM mrp_production mo
@@ -87,6 +87,3 @@ class RunningCavityActionLog(models.Model):
     action = fields.Char()
     action_by = fields.Many2one('res.users', default=lambda self: self.env.user)
     date = fields.Datetime(default=fields.Datetime.now)
-
-
-

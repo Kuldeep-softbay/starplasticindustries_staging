@@ -10,8 +10,8 @@
             <field name="workcenter_id" optional="show"/>
             <field name="shift" optional="show"/>
             <field name="product_id" optional="show"/>
-            <field name="supervisor1" optional="show"/>
-            <field name="supervisor2" optional="show"/>
+            <field name="supervisor_one_id" optional="show"/>
+            <field name="supervisor_two_id" optional="show"/>
             <field name="running_cavity" optional="show"/>
             <field name="mould_cavity" optional="show"/>
             <button name="action_hide"
