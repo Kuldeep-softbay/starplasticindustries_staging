@@ -39,14 +39,158 @@ class MrpProduction(models.Model):
         'production_id',
         string='Production Memos'
     )
-    pmemo_count = fields.Integer(
-        compute='_compute_pmemo_count',
-        string='P-Memo Count'
+    row_matterial_returned = fields.Float(string="RM Returned")
+
+    pmemo_number = fields.Char()
+    workcenter_id = fields.Many2one("mrp.workcenter")
+    colour = fields.Char()
+    production_qty = fields.Float()
+    date = fields.Date(compute="_compute_pmemo_header", store=True)
+    workcenter_id = fields.Many2one("mrp.workcenter", compute="_compute_pmemo_header", store=True)
+    production_qty = fields.Float(compute="_compute_pmemo_header", store=True)
+    lot_id = fields.Many2one("stock.lot", compute="_compute_pmemo_header", store=True)
+    unit_weight = fields.Float(compute="_compute_pmemo_header", store=True)
+
+
+    # ---- Raw Material Formulation ----
+    rm_required_qty = fields.Float(compute="_compute_pmemo", store=True)
+    rm_issued_qty = fields.Float(compute="_compute_pmemo", store=True)
+    rm_return_qty = fields.Float(compute="_compute_pmemo", store=True)
+    rm_loss_qty = fields.Float(compute="_compute_pmemo", store=True)
+    rm_loss_percent = fields.Float(compute="_compute_pmemo", store=True)
+    rm_to_be_made = fields.Float(compute="_compute_pmemo", store=True)
+
+    fg_qty = fields.Float(compute="_compute_pmemo", store=True)
+    fg_weight = fields.Float(compute="_compute_pmemo", store=True)
+    yeild_percent = fields.Float(compute="_compute_pmemo", store=True)
+
+    rm_type = fields.Many2one(
+        "product.product",
+        compute="_compute_pmemo_extra",
+        store=True
+    )
+    cavity = fields.Integer(
+        compute="_compute_pmemo_extra",
+        store=True
     )
 
-    def _compute_pmemo_count(self):
+    @api.depends(
+        "state",
+        "bom_id.bom_line_ids.product_id",
+        "bom_id.operation_ids.cavity",
+    )
+    def _compute_pmemo_extra(self):
         for rec in self:
-            rec.pmemo_count = len(rec.pmemo_ids)
+            rec.rm_type = False
+            rec.cavity = 0
+
+            if rec.state != "done":
+                continue
+
+            raw_moves = rec.move_raw_ids.filtered(
+                lambda m: m.state == "done"
+            )
+            if raw_moves:
+                rec.rm_type = raw_moves[0].product_id
+
+            if rec.bom_id and rec.bom_id.operation_ids:
+                rec.cavity = rec.bom_id.operation_ids[0].cavity or 0
+
+    @api.depends(
+        "state",
+        "date_finished",
+        "qty_produced",
+        "product_id",
+        "lot_producing_id",
+        "workorder_ids.workcenter_id",
+    )
+    def _compute_pmemo_header(self):
+        for rec in self:
+            rec.date = False
+            rec.workcenter_id = False
+            rec.production_qty = 0.0
+            rec.lot_id = False
+            rec.unit_weight = 0.0
+
+            if rec.state != "done":
+                continue
+
+            rec.date = rec.date_finished.date() if rec.date_finished else fields.Date.today()
+            rec.production_qty = rec.qty_produced
+            rec.lot_id = rec.lot_producing_id
+            rec.unit_weight = rec.product_id.weight or 0.0
+            if rec.workorder_ids:
+                rec.workcenter_id = rec.workorder_ids[0].workcenter_id
+
+    @api.depends(
+        "state",
+        "product_qty",
+        "bom_id",
+        "move_raw_ids.move_line_ids.qty_done",
+        "move_finished_ids.move_line_ids.qty_done",
+    )
+    def _compute_pmemo(self):
+        for rec in self:
+            # ---- Default values ----
+            rec.rm_required_qty = 0.0
+            rec.rm_issued_qty = 0.0
+            rec.rm_return_qty = 0.0
+            rec.rm_loss_qty = 0.0
+            rec.rm_loss_percent = 0.0
+            rec.rm_to_be_made = 0.0
+            rec.fg_qty = 0.0
+            rec.fg_weight = 0.0
+            rec.yeild_percent = 0.0
+
+            if rec.state != "done":
+                continue
+
+            # ---- RM REQUIRED (from BOM) ----
+            if rec.bom_id and rec.bom_id.product_qty:
+                factor = rec.product_qty / rec.bom_id.product_qty
+                rec.rm_required_qty = sum(
+                    line.product_qty * factor
+                    for line in rec.bom_id.bom_line_ids
+                )
+
+            # ---- RM ISSUED & RETURNED ----
+            issued = returned = 0.0
+            for move in rec.move_raw_ids.filtered(lambda m: m.state == "done"):
+                for ml in move.move_line_ids:
+                    if ml.location_dest_id.usage == "production":
+                        issued += ml.qty_done
+                    elif ml.location_id.usage == "production":
+                        returned += ml.qty_done
+
+            rec.rm_issued_qty = issued
+            rec.rm_return_qty = rec.row_matterial_returned
+
+            # ---- RM LOSS ----
+            loss = issued - rec.rm_required_qty - rec.rm_return_qty
+            rec.rm_loss_qty = max(loss, 0.0)
+            rec.rm_loss_percent = (
+                (rec.rm_loss_qty / rec.rm_required_qty) * 100
+                if rec.rm_required_qty
+                else 0.0
+            )
+
+            rec.rm_to_be_made = rec.rm_required_qty - rec.rm_issued_qty + rec.rm_return_qty
+
+            # ---- FG QTY & WEIGHT ----
+            fg_qty = sum(
+                ml.qty_done
+                for move in rec.move_finished_ids.filtered(lambda m: m.state == "done")
+                for ml in move.move_line_ids
+            )
+            rec.fg_qty = fg_qty
+            rec.fg_weight = fg_qty * rec.unit_weight
+
+            # ---- YIELD ----
+            rec.yeild_percent = (
+                (rec.fg_weight / rec.rm_issued_qty) * 100
+                if rec.rm_issued_qty
+                else 0.0
+            )
 
     # --------------------------------
     # Convert Unit Weight Gram → KG
@@ -143,35 +287,70 @@ class MrpProduction(models.Model):
         action['context'] = {'default_production_id': self.id}
         return action
 
-    def action_open_pmemo(self):
+    def write(self, vals):
+        res = super().write(vals)
+
+        if "row_material_returned" in vals:
+            for mo in self:
+                if mo.row_material_returned > 0:
+                    mo._create_rm_return_move()
+
+        return res
+
+    def _create_rm_return_move(self):
         self.ensure_one()
-        workorder = self.env['mrp.workorder'].search([('production_id', '=', self.id)], limit=1)
-        routing_workcenter = workorder.workcenter_id if workorder else None
 
-        # Fetch the routing line associated with the workcenter
-        routing_line = self.env['mrp.routing.workcenter'].search([('workcenter_ids', 'in', routing_workcenter.id)], limit=1) if routing_workcenter else None
-        print(routing_line)
+        raw_move = self.move_raw_ids.filtered(lambda m: m.state == "done")
+        if not raw_move:
+            return
 
-        # Get the raw material used in the production of the product
-        raw_material = self.bom_id.bom_line_ids[0].product_id if self.bom_id.bom_line_ids else None
+        base_move = raw_move[0]
 
-        # Ensure cavity is fetched correctly, default to 0 if not found
-        mould_cavity = routing_line.cavity if routing_line and hasattr(routing_line, 'cavity') else 0
+        move = self.env["stock.move"].create({
+            "name": f"RM Return {self.name}",
+            "product_id": base_move.product_id.id,
+            "product_uom_qty": self.row_matterial_returned,
+            "product_uom": base_move.product_uom.id,
+            "location_id": base_move.location_dest_id.id,
+            "location_dest_id": base_move.location_id.id,
+            "production_id": self.id,
+            "company_id": self.company_id.id,
+        })
 
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Production Memo',
-            'res_model': 'production.memo',
-            'view_mode': 'list,form',
-            'domain': [('production_id', '=', self.id)],
-            'context': {
-                'default_production_id': self.id,
-                'default_workcenter_id': routing_workcenter.id if routing_workcenter else False,
-                'default_rm_type': raw_material.id if raw_material else False,
-                'default_mould_cavity': mould_cavity,
-                'default_product_id': self.product_id.id,
-                'default_unit_weight': self.product_id.weight_gm,
-                'default_lot_id': self.move_finished_ids.mapped('move_line_ids.lot_id')[0].id if self.move_finished_ids.mapped('move_line_ids.lot_id') else False,
-                'default_production_qty': self.product_qty,
-            }
-        }
+        self.env["stock.move.line"].create({
+            "move_id": move.id,
+            "product_id": move.product_id.id,
+            "product_uom_id": move.product_uom.id,
+            "qty_done": self.row_matterial_returned,
+            "location_id": move.location_id.id,
+            "location_dest_id": move.location_dest_id.id,
+            "company_id": self.company_id.id,
+        })
+
+        move._action_done()
+
+
+
+class MrpProductionRmLine(models.Model):
+    _name = "mrp.production.rm.line"
+    _description = "MRP Production Raw Material Line"
+
+    production_id = fields.Many2one(
+        "mrp.production",
+        string="Production",
+        required=True,
+        ondelete="cascade",
+    )
+    rm_type = fields.Many2one(
+        "product.product",
+        string="Raw Material",
+        required=True,
+        domain="[('purchase_ok','=',True),('sale_ok','=',False)]"
+    )
+    uom_id = fields.Many2one("uom.uom", string="UoM", required=True)
+    bom_qty = fields.Float(string="RM Required (BOM)")
+    issued_qty = fields.Float(string="RM Issued")
+    return_qty = fields.Float(string="RM Returned")
+    loss_qty = fields.Float(string="RM Loss Qty")
+    to_be_made_qty = fields.Float(string="RM To Be Made")
+    loss_percent = fields.Float(string="RM Loss (%)")

@@ -30,6 +30,13 @@
                     </group>
                 </page>
         </xpath>
+        <xpath expr="//notebook" position="inside">
+                <page string="RM Return">
+                    <group string="RM Return">
+                        <field name="row_matterial_returned"/>
+                    </group>
+                </page>
+        </xpath>
     </field>
   </record>
 </odoo>
