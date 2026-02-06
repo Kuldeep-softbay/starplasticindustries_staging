@@ -15,7 +15,7 @@
                 <field name="date"/>
                 <field name="workorder_no"/>
                 <field name="machine_id"/>
-                <field name="shift"/>
+                <field name="shift_display"/>
                 <field name="product_id"/>
                 <field name="supervisor_one_id"/>
                 <field name="supervisor_two_id"/>

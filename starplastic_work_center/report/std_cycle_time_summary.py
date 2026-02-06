@@ -8,7 +8,11 @@ class StdCycleTimeSummary(models.Model):
     date = fields.Date()
     workorder_no = fields.Char()
     machine_id = fields.Many2one('mrp.workcenter')
-    shift = fields.Char()
+    shift_id = fields.Many2one('work.center.shift')
+    shift_display = fields.Char(
+        compute='_compute_shift_display',
+        store=False,
+    )
     product_id = fields.Many2one('product.product')
     supervisor_one_id = fields.Many2one('res.users')
     supervisor_two_id = fields.Many2one('res.users')
@@ -19,6 +23,13 @@ class StdCycleTimeSummary(models.Model):
     action = fields.Char(string='Action')
     action_by = fields.Many2one('res.users', string='Action By')
 
+    def _compute_shift_display(self):
+        for rec in self:
+            if rec.shift_id and rec.shift_id.name:
+                rec.shift_display = rec.shift_id.name.split('-')[-1].strip()
+            else:
+                rec.shift_display = False
+
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'std_cycle_time_summary')
         self.env.cr.execute("""
@@ -28,7 +39,7 @@ class StdCycleTimeSummary(models.Model):
                     wcs.date AS date,
                     mo.name AS workorder_no,
                     wo.workcenter_id AS machine_id,
-                    wcs.code AS shift,
+                    wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
                     wcs.supervisor_one_id AS supervisor_one_id,
                     wcs.supervisor_two_id AS supervisor_two_id,

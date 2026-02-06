@@ -7,7 +7,7 @@
             <field name="date" optional="show"/>
             <field name="workorder_no" optional="show"/>
             <field name="machine_id" optional="show"/>
-            <field name="shift" optional="show"/>
+            <field name="shift_display" optional="show"/>
             <field name="product_id" optional="show"/>
             <field name="supervisor_one_id" optional="show"/>
             <field name="supervisor_two_id" optional="show"/>

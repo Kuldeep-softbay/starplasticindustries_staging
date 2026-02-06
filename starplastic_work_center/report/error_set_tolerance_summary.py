@@ -1,23 +1,31 @@
 from odoo import models, fields, tools
 
-class RunningCavitySummary(models.Model):
-    _name = 'running.cavity.summary'
-    _description = 'Running Cavity Summary'
+
+class ErrorSetToleranceSummary(models.Model):
+    _name = 'error.set.tolerance.summary'
+    _description = 'Error Set Tolerance Summary'
     _auto = False
 
     date = fields.Date()
     workorder_no = fields.Char()
     machine_id = fields.Many2one('mrp.workcenter')
-    shift_id = fields.Many2one('work.center.shift')
+
+    shift_id = fields.Many2one(
+        'work.center.shift',
+    )
+
     shift_display = fields.Char(
         compute='_compute_shift_display',
-        store=False,
+        store=False
     )
+
     product_id = fields.Many2one('product.product', string='Item')
-    supervisor_one_id = fields.Many2one('res.users')
-    supervisor_two_id = fields.Many2one('res.users')
-    running_cavity = fields.Integer()
-    mould_cavity = fields.Integer()
+
+    production_kg_workshop = fields.Float()
+    production_kg_store = fields.Float()
+    difference_kg = fields.Float()
+    difference_percent = fields.Float()
+
     action = fields.Char(string='Action')
     reason_id = fields.Many2one('running.cavity.reason', string='Reason')
     action_by = fields.Many2one('res.users')
@@ -30,9 +38,9 @@ class RunningCavitySummary(models.Model):
                 rec.shift_display = False
 
     def init(self):
-        tools.drop_view_if_exists(self.env.cr, 'running_cavity_summary')
+        tools.drop_view_if_exists(self.env.cr, 'error_set_tolerance_summary')
         self.env.cr.execute("""
-            CREATE VIEW running_cavity_summary AS (
+            CREATE VIEW error_set_tolerance_summary AS (
                 SELECT
                     row_number() OVER() AS id,
                     wcs.date AS date,
@@ -40,16 +48,25 @@ class RunningCavitySummary(models.Model):
                     wo.workcenter_id AS machine_id,
                     wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
-                    wcs.supervisor_one_id AS supervisor_one_id,
-                    wcs.supervisor_two_id AS supervisor_two_id,
-                    wcs.cavity AS running_cavity,
-                    NULL::integer AS mould_cavity,
-                    NULL::varchar AS action,
-                    NULL::integer AS reason_id,
-                    NULL::integer AS action_by
+
+                    wcs.unit_waight AS production_kg_workshop,
+                    wcs.unit_waight AS production_kg_store,
+
+                    (wcs.unit_waight - wcs.unit_waight) AS difference_kg,
+
+                    CASE
+                        WHEN wcs.unit_waight = 0 THEN 0
+                        ELSE 0
+                    END AS difference_percent,
+
+                    est_log.action AS action,
+                    est_log.reason_id AS reason_id,
+                    est_log.action_by AS action_by
+
                 FROM work_center_shift wcs
                 JOIN mrp_production mo ON mo.id = wcs.production_id
                 JOIN mrp_workorder wo ON wo.production_id = mo.id
+                LEFT JOIN error_set_tolerance_action_log est_log
+                    ON est_log.report_id = wcs.id
             )
         """)
-

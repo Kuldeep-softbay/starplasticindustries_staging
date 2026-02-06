@@ -1,10 +1,11 @@
 from odoo import models, fields, tools
 
+
 class RMLossReport(models.Model):
-    _name = 'rm.loss.report'
-    _description = 'RM Loss Report'
+    _name = "rm.loss.report"
+    _description = "RM Loss Report"
     _auto = False
-    _rec_name = 'pmemo_number'
+    _rec_name = "pmemo_number"
 
     date = fields.Date(string="Date")
     product_id = fields.Many2one("product.product", string="Item")

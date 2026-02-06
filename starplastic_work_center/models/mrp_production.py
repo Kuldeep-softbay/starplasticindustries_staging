@@ -203,7 +203,6 @@ class MrpProduction(models.Model):
     @api.depends('total_kg', 'unit_weight_kg')
     def _compute_total_pcs(self):
         for rec in self:
-            # unit_weight_kg = rec.product_id.product_tmpl_id.weight or 0.0
             if rec.unit_weight_kg > 0:
                 rec.total_pcs = int(rec.total_kg / rec.unit_weight_kg)
             else:

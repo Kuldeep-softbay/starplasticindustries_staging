@@ -1,0 +1,66 @@
+from odoo import models, fields, tools
+
+
+class ProductionDelaySummary(models.Model):
+    _name = 'production.delay.summary'
+    _description = 'Production Delay Summary'
+    _auto = False
+
+    wo_date = fields.Date(string='W.O Date')
+    wo_no = fields.Char(string='W.O No')
+
+    machine_id = fields.Many2one('mrp.workcenter', string='Machine')
+    product_id = fields.Many2one('product.product', string='Item')
+
+    qty = fields.Float(string='Qty')
+
+    planned_start_date = fields.Datetime(string='Planned Start Date')
+    actual_start_date = fields.Datetime(string='Actual Start Date')
+
+    exp_delivery_date = fields.Date(string='Exp. Delivery Date')
+    production_close_date = fields.Date(string='Production Close Date')
+    production_end_date = fields.Datetime(string='Production End Date')
+
+    production_delay = fields.Integer(string='Production Delay (Min)')
+
+    action = fields.Char(string='Action')
+    reason_id = fields.Many2one('running.cavity.reason', string='Reason')
+    action_by = fields.Many2one('res.users', string='Action By')
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, 'production_delay_summary')
+        self.env.cr.execute("""
+            CREATE VIEW production_delay_summary AS (
+                SELECT
+                    row_number() OVER () AS id,
+
+                    wo.date_start::date AS wo_date,
+                    mp.name AS wo_no,
+
+                    wo.workcenter_id AS machine_id,
+                    mp.product_id AS product_id,
+
+                    mp.product_qty AS qty,
+
+                    -- planned dates not available → keep NULL safely
+                    NULL::timestamp AS planned_start_date,
+                    wo.date_start AS actual_start_date,
+
+                    wo.date_finished::date AS exp_delivery_date,
+                    wo.date_finished::date AS production_close_date,
+                    wo.date_finished AS production_end_date,
+
+                    -- delay cannot be calculated without planned date
+                    0 AS production_delay,
+
+                    -- action tracking (future use)
+                    NULL::varchar AS action,
+                    NULL::integer AS reason_id,
+                    NULL::integer AS action_by
+
+                FROM mrp_workorder wo
+                JOIN mrp_production mp ON mp.id = wo.production_id
+                WHERE wo.date_start IS NOT NULL
+            )
+        """)
+
