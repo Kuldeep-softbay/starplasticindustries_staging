@@ -37,35 +37,28 @@ class UnitWeightToleranceSummary(models.Model):
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'unit_weight_tolerance_summary')
         self.env.cr.execute("""
-            CREATE VIEW unit_weight_tolerance_summary AS (
+            CREATE OR REPLACE VIEW unit_weight_tolerance_summary AS (
                 SELECT
                     row_number() OVER () AS id,
-
-                    wcs.date AS date,
+                    wcs.date,
                     mo.name AS workorder_no,
                     wo.workcenter_id AS machine_id,
                     wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
-
-                    wcs.supervisor_one_id AS supervisor_one_id,
-                    wcs.supervisor_two_id AS supervisor_two_id,
-
+                    wcs.supervisor_one_id,
+                    wcs.supervisor_two_id,
                     wcs.unit_waight AS actual_weight,
                     pt.weight AS std_weight,
                     (wcs.unit_waight - pt.weight) AS tolerance,
-
-                    NULL::integer AS reason_id,
-                    NULL::varchar AS action,
-                    NULL::integer AS action_by
-
+                    wcs.unit_weight_reason_id AS reason_id,
+                    wcs.unit_weight_action AS action,
+                    wcs.unit_weight_acknowledged_by AS action_by
                 FROM work_center_shift wcs
-                JOIN mrp_production mo
-                    ON mo.id = wcs.production_id
-                JOIN mrp_workorder wo
-                    ON wo.production_id = mo.id
-                JOIN product_product pp
-                    ON pp.id = wcs.mold_id
-                JOIN product_template pt
-                    ON pt.id = pp.product_tmpl_id
+                JOIN mrp_production mo ON mo.id = wcs.production_id
+                JOIN mrp_workorder wo ON wo.production_id = mo.id
+                JOIN product_product pp ON pp.id = wcs.mold_id
+                JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                WHERE COALESCE(wcs.unit_weight_acknowledged, false) = true
             )
         """)
+

@@ -30,37 +30,29 @@ class ProductionDelaySummary(models.Model):
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'production_delay_summary')
         self.env.cr.execute("""
-            CREATE VIEW production_delay_summary AS (
+            CREATE OR REPLACE VIEW production_delay_summary AS (
                 SELECT
-                    row_number() OVER () AS id,
-
+                    wo.id AS id,  -- REAL workorder ID
                     wo.date_start::date AS wo_date,
                     mp.name AS wo_no,
-
                     wo.workcenter_id AS machine_id,
                     mp.product_id AS product_id,
-
                     mp.product_qty AS qty,
-
-                    -- planned dates not available → keep NULL safely
                     NULL::timestamp AS planned_start_date,
                     wo.date_start AS actual_start_date,
-
                     wo.date_finished::date AS exp_delivery_date,
                     wo.date_finished::date AS production_close_date,
                     wo.date_finished AS production_end_date,
-
-                    -- delay cannot be calculated without planned date
                     0 AS production_delay,
-
-                    -- action tracking (future use)
-                    NULL::varchar AS action,
-                    NULL::integer AS reason_id,
-                    NULL::integer AS action_by
-
+                    wo.production_delay_reason_id AS reason_id,
+                    wo.production_delay_acknowledged_by AS action_by,
+                    ''::varchar AS action
                 FROM mrp_workorder wo
                 JOIN mrp_production mp ON mp.id = wo.production_id
-                WHERE wo.date_start IS NOT NULL
+                WHERE
+                    wo.date_start IS NOT NULL
+                    AND COALESCE(wo.production_delay_acknowledged, false) = true
             )
         """)
+
 

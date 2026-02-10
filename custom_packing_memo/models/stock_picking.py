@@ -1,6 +1,8 @@
+import math
 from odoo import api, fields, models, _
 from datetime import datetime
 from odoo.exceptions import UserError, ValidationError
+import math
 
 class ProductTemplate(models.Model):
     _inherit = "product.product"
@@ -23,7 +25,7 @@ class StockPicking(models.Model):
     )
     mfi_value = fields.Float(string='MFI Value')
     bags_type = fields.Char(string='Bags Type')
-    number_of_bags = fields.Integer(string='Number of Bags')
+    number_of_bags = fields.Integer(string='Number of Bags', compute='_compute_number_of_bags', store=True)
     particulars = fields.Text(string='Particulars')
     remarks = fields.Text(string='Remarks')
     party_id = fields.Many2one('job.party.work', string='Party')
@@ -52,6 +54,24 @@ class StockPicking(models.Model):
     packing_memo_count = fields.Integer(
         compute='_compute_packing_memo_count'
     )
+
+    @api.depends('move_ids_without_package.product_uom_qty', 'state')
+    def _compute_number_of_bags(self):
+        for picking in self:
+            if picking.state != 'done':
+                picking.number_of_bags = 0
+                continue
+
+            total_qty_grams = 0.0
+
+            for move in picking.move_ids_without_package:
+                total_qty_grams += move.product_uom_qty or 0.0
+
+            BAG_SIZE_GRAMS = 25 * 1000
+
+            picking.number_of_bags = int(
+                math.ceil(total_qty_grams / BAG_SIZE_GRAMS)
+            ) if total_qty_grams else 0
 
     def _compute_packing_memo_count(self):
         for picking in self:

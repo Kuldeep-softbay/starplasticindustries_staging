@@ -1,28 +1,45 @@
 from odoo import models, fields, tools
 
 
+class WorkCenterShift(models.Model):
+    _inherit = 'work.center.shift'
+
+    error_tolerance_acknowledged = fields.Boolean(default=False)
+    error_tolerance_reason_id = fields.Many2one(
+        'running.cavity.reason',
+        string='Reason'
+    )
+    error_tolerance_action = fields.Char(string='Action')
+    error_tolerance_acknowledged_by = fields.Many2one(
+        'res.users',
+        string='Action By'
+    )
+
 class ErrorSetToleranceReasonWizard(models.TransientModel):
     _name = 'error.set.tolerance.reason.wizard'
     _description = 'Error Set Tolerance Reason Wizard'
 
-    error_set_tolerance_id = fields.Many2one(
-        'error.set.tolerance.report',
-        string='Error Set Tolerance Report'
+    shift_id = fields.Many2one(
+        'work.center.shift',
+        required=True,
+        readonly=True
     )
     reason_id = fields.Many2one(
         'running.cavity.reason',
-        string='Reason'
+        required=True
     )
-    action = fields.Char(string='Action')
+    action = fields.Char(required=True)
 
     def action_confirm(self):
-        self.env['error.set.tolerance.action.log'].create({
-            'report_id': self.error_set_tolerance_id.id,
-            'reason_id': self.reason_id.id,
-            'action': self.action,
-            'action_by': self.env.user.id,
+        self.ensure_one()
+        self.shift_id.write({
+            'error_tolerance_acknowledged': True,
+            'error_tolerance_reason_id': self.reason_id.id,
+            'error_tolerance_action': self.action,
+            'error_tolerance_acknowledged_by': self.env.user.id,
         })
         return {'type': 'ir.actions.act_window_close'}
+
 
 
 class ErrorSetToleranceReport(models.Model):
@@ -65,43 +82,36 @@ class ErrorSetToleranceReport(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_error_set_tolerance_id': self.id,
+                'default_shift_id': self.shift_id.id,
             }
-        }
+    }
+
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'error_set_tolerance_report')
         self.env.cr.execute("""
-            CREATE VIEW error_set_tolerance_report AS (
+            CREATE OR REPLACE VIEW error_set_tolerance_report AS (
                 SELECT
                     row_number() OVER () AS id,
-                    wcs.date AS date,
+                    wcs.date,
                     mo.name AS workorder_no,
                     wcs.mold_id AS product_id,
                     wo.workcenter_id AS workcenter_id,
                     wcs.id AS shift_id,
-
                     wcs.unit_waight AS production_kg_workshop,
                     wcs.unit_waight AS production_kg_store,
-
                     (wcs.unit_waight - wcs.unit_waight) AS difference_kg,
-
                     CASE
                         WHEN wcs.unit_waight = 0 THEN 0
                         ELSE 0
                     END AS difference_percent
-
                 FROM work_center_shift wcs
                 JOIN mrp_production mo ON mo.id = wcs.production_id
                 JOIN mrp_workorder wo ON wo.production_id = mo.id
-
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM error_set_tolerance_action_log log
-                    WHERE log.report_id = wcs.id
-                )
+                WHERE COALESCE(wcs.error_tolerance_acknowledged, false) = false
             )
         """)
+
 
 
 class ErrorSetToleranceActionLog(models.Model):

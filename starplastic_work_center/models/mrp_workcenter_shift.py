@@ -44,13 +44,12 @@ class WCShiftTemplate(models.Model):
     @api.constrains('code', 'start_hour')
     def _check_shift_time_validity(self):
         for rec in self:
-            if rec.code == 'A' and rec.start_hour != 6:
-                raise ValidationError(_("Shift A must start at 6 AM"))
-            elif rec.code == 'B' and rec.start_hour != 14:
-                raise ValidationError(_("Shift B must start at 2 PM"))
-            elif rec.code == 'C' and rec.start_hour != 22:
-                raise ValidationError(_("Shift C must start at 10 PM"))
-
+            if rec.code == 'F' and rec.start_hour != 6:
+                raise ValidationError(_("FS must start at 6 AM"))
+            elif rec.code == 'S' and rec.start_hour != 14:
+                raise ValidationError(_("SS must start at 2 PM"))
+            elif rec.code == 'T' and rec.start_hour != 22:
+                raise ValidationError(_("TS must start at 10 PM"))
     @api.depends('code')
     def _compute_start_hour(self):
         """Automatically set start hour based on shift code"""
@@ -186,10 +185,9 @@ class WCShift(models.Model):
     hourly_target_qty = fields.Float(string='Hourly Target (units/hr)', compute='_compute_hourly_target', store=True)
 
     code = fields.Selection(
-        [('A', 'Shift A'), ('B', 'Shift B'), ('C', 'Shift C')],
+        [('F', 'FS'), ('S', 'SS'), ('T', 'TS')],
         string='Shift Code',
-        # required=True,
-        help='Code representing the shift (A, B, or C).'
+        help='Code representing the shift (F, S, or T).'
     )
 
     # =========================

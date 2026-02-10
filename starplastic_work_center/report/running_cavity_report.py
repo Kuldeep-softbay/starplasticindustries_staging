@@ -8,22 +8,46 @@ class RunningCavityReason(models.Model):
     name = fields.Char(string='Reason')
 
 
+class WorkCenterShift(models.Model):
+    _inherit = 'work.center.shift'
+
+    cavity_acknowledged = fields.Boolean(default=False)
+    cavity_reason_id = fields.Many2one(
+        'running.cavity.reason',
+        string='Reason'
+    )
+    cavity_action = fields.Char(string='Action')
+    cavity_acknowledged_by = fields.Many2one(
+        'res.users',
+        string='Action By'
+    )
+
+
 class RunningCavityReasonWizard(models.TransientModel):
     _name = 'running.cavity.reason.wizard'
     _description = 'Running Cavity Reason Wizard'
 
-    running_cavity_id = fields.Many2one('running.cavity.report', string='Running Cavity Report')
-    reason_id = fields.Many2one('running.cavity.reason', string='Reason for Hiding')
-    action = fields.Char(string='Action')
-
+    shift_id = fields.Many2one(
+        'work.center.shift',
+        required=True,
+        readonly=True
+    )
+    reason_id = fields.Many2one(
+        'running.cavity.reason',
+        required=True
+    )
+    action = fields.Char(required=True)
 
     def action_confirm(self):
-        self.env['running.cavity.action.log'].create({
-            'report_id': self.running_cavity_id.id,
-            'reason_id': self.reason_id.id,
-            'action_by': self.env.user.id,
+        self.ensure_one()
+        self.shift_id.write({
+            'cavity_acknowledged': True,
+            'cavity_reason_id': self.reason_id.id,
+            'cavity_action': self.action,
+            'cavity_acknowledged_by': self.env.user.id,
         })
         return {'type': 'ir.actions.act_window_close'}
+
 
 class RunningCavityReport(models.Model):
     _name = 'running.cavity.report'
@@ -32,7 +56,7 @@ class RunningCavityReport(models.Model):
 
     date = fields.Date()
     workorder_no = fields.Char("W.O. No")
-    workcenter_id = fields.Many2one('mrp.workcenter', string="Machine")
+    machine_id = fields.Many2one('mrp.workcenter', string="Machine")
     shift_id = fields.Many2one('work.center.shift', string="Shift")
     shift_display = fields.Char(
         compute='_compute_shift_display',
@@ -60,36 +84,34 @@ class RunningCavityReport(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_running_cavity_id': self.id,
+                'default_shift_id': self.shift_id.id,
             }
         }
+
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'running_cavity_report')
         self.env.cr.execute("""
-            CREATE VIEW running_cavity_report AS (
+            CREATE OR REPLACE VIEW running_cavity_report AS (
                 SELECT
-                    row_number() OVER() AS id,
-                    mo.create_date AS date,
+                    row_number() OVER () AS id,
+                    wcs.date,
                     mo.name AS workorder_no,
-
-                    NULL::integer AS workcenter_id,
-                    wc_shift.id AS shift_id,
-
-                    mo.product_id,
-                    wc_shift.supervisor_one_id AS supervisor_one_id,
-                    wc_shift.supervisor_two_id AS supervisor_two_id,
-                    wc_shift.cavity AS running_cavity,
-                    wc_shift.cavity AS mould_cavity
-                FROM mrp_production mo
-                JOIN work_center_shift wc_shift
-                    ON wc_shift.production_id = mo.id
-                JOIN product_product pp
-                    ON pp.id = mo.product_id
-                JOIN product_template pt
-                    ON pt.id = pp.product_tmpl_id
+                    wo.workcenter_id AS machine_id,
+                    wcs.id AS shift_id,
+                    wcs.mold_id AS product_id,
+                    wcs.supervisor_one_id,
+                    wcs.supervisor_two_id,
+                    wcs.cavity AS running_cavity,
+                    rwc.cavity AS mould_cavity
+                FROM work_center_shift wcs
+                JOIN mrp_production mo ON mo.id = wcs.production_id
+                JOIN mrp_workorder wo ON wo.production_id = mo.id
+                JOIN mrp_routing_workcenter rwc ON rwc.id = wo.operation_id
+                WHERE COALESCE(wcs.cavity_acknowledged, false) = false
             )
         """)
+
 
 class RunningCavityActionLog(models.Model):
     _name = 'running.cavity.action.log'

@@ -40,7 +40,6 @@
         <field name="arch" type="xml">
             <form string="Acknowledge Production Delay">
                 <group>
-                    <field name="production_delay_id" invisible="1"/>
                     <field name="reason_id"/>
                 </group>
                 <footer>

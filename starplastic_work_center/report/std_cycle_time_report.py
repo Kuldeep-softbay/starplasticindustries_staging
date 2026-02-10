@@ -1,18 +1,51 @@
 from odoo import models, fields, tools
 
-class StdCycleTimeReasonWizard(models.Model):
+class WorkCenterShift(models.Model):
+    _inherit = 'work.center.shift'
+
+    cycle_time_acknowledged = fields.Boolean(default=False)
+    cycle_time_reason_id = fields.Many2one(
+        'running.cavity.reason',
+        string='Reason'
+    )
+    cycle_time_action = fields.Char(string='Action')
+    cycle_time_acknowledged_by = fields.Many2one(
+        'res.users',
+        string='Action By'
+    )
+
+    
+class StdCycleTimeReasonWizard(models.TransientModel):
     _name = 'std.cycle.time.reason.wizard'
     _description = 'Standard Cycle Time Reason Wizard'
 
-    std_cycle_time_id = fields.Many2one('std.cycle.time.report', string='Standard Cycle Time Report')
-    reason_id = fields.Many2one('running.cavity.reason', string='Reason for Hiding')
-    action = fields.Char(string='Action')
+    shift_id = fields.Many2one(
+        'work.center.shift',
+        string='Shift',
+        required=True,
+        readonly=True
+    )
+    reason_id = fields.Many2one(
+        'running.cavity.reason',
+        string='Reason',
+        required=True
+    )
+    action = fields.Char(
+        string='Action',
+        required=True
+    )
 
     def action_confirm(self):
         self.ensure_one()
-        report_record = self.std_cycle_time_id
-        # report_record.reason_id = self.reason_id
+        self.shift_id.write({
+            'cycle_time_acknowledged': True,
+            'cycle_time_reason_id': self.reason_id.id,
+            'cycle_time_action': self.action,
+            'cycle_time_acknowledged_by': self.env.user.id,
+        })
         return {'type': 'ir.actions.act_window_close'}
+
+
     
 class StdCycleTimeHidden(models.Model):
     _name = 'std.cycle.time.hidden'
@@ -38,12 +71,10 @@ class StdCycleTimeReport(models.Model):
     product_id = fields.Many2one('product.product')
     supervisor_one_id = fields.Many2one('res.users')
     supervisor_two_id = fields.Many2one('res.users')
-    set_cycle_time = fields.Float()
-    std_cycle_time = fields.Float()
+    set_cycle_time = fields.Float(string='Set Cycle Time')
+    running_cycle_time = fields.Float(string='Running Cycle Time')
     tolerance = fields.Float()
     hourly_target = fields.Float()
-    report_key = fields.Char()
-    is_hidden = fields.Boolean(compute='_compute_hidden')
 
     def _compute_shift_display(self):
         for rec in self:
@@ -51,11 +82,6 @@ class StdCycleTimeReport(models.Model):
                 rec.shift_display = rec.shift_id.name.split('-')[-1].strip()
             else:
                 rec.shift_display = False
-
-    def _compute_hidden(self):
-        Hide = self.env['running.cavity.hide.log']
-        for rec in self:
-            rec.is_hidden = bool(Hide.search([('report_key', '=', rec.report_key)], limit=1))
 
     def action_hide(self):
         self.ensure_one()
@@ -66,56 +92,62 @@ class StdCycleTimeReport(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_std_cycle_time_id': self.id,
+                'default_shift_id': self.shift_id.id,
             }
         }
-    
-    def action_confirm(self):
-        self.ensure_one()
-
-        key = self.std_cycle_time_id.report_key
-        Hide = self.env['running.cavity.hide.log']
-
-        if not Hide.search([('report_key', '=', key)], limit=1):
-            Hide.create({
-                'report_key': key,
-                'reason_id': self.reason_id.id,
-            })
-
-        return {'type': 'ir.actions.act_window_close'}
-
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'std_cycle_time_report')
         self.env.cr.execute("""
-            CREATE VIEW std_cycle_time_report AS (
+            CREATE OR REPLACE VIEW std_cycle_time_report AS (
                 SELECT
-                    row_number() OVER() AS id,
-                    CONCAT(wcs.date, '-', mo.name, '-', wo.workcenter_id) AS report_key,
+                    row_number() OVER () AS id,
+
+                    wcs.id AS shift_id,
                     wcs.date AS date,
                     mo.name AS workorder_no,
                     wo.workcenter_id AS machine_id,
-                    wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
-                    wcs.supervisor_one_id AS supervisor_one_id,
-                    wcs.supervisor_two_id AS supervisor_two_id,
-                    wcs.cycle_time_sec AS set_cycle_time,
-                    wcs.cycle_time_sec AS std_cycle_time,
-                    0.0 AS tolerance,
+
+                    wcs.supervisor_one_id,
+                    wcs.supervisor_two_id,
+
+                    -- SET / STANDARD CYCLE TIME (from routing)
+                    rwc.cycle_time AS set_cycle_time,
+
+                    -- RUNNING / ACTUAL CYCLE TIME
+                    wcs.cycle_time_sec AS running_cycle_time,
+
+                    -- TOLERANCE from Product
+                    pt.unit_weight_tolerance AS tolerance,
+
                     wcs.hourly_target_qty AS hourly_target
+
                 FROM work_center_shift wcs
-                JOIN mrp_production mo ON mo.id = wcs.production_id
-                JOIN mrp_workorder wo ON wo.production_id = mo.id
+                JOIN mrp_production mo
+                    ON mo.id = wcs.production_id
+                JOIN mrp_workorder wo
+                    ON wo.production_id = mo.id
+                JOIN mrp_routing_workcenter rwc
+                    ON rwc.id = wo.operation_id
+                JOIN product_product pp
+                    ON pp.id = wcs.mold_id
+                JOIN product_template pt
+                    ON pt.id = pp.product_tmpl_id
+
+                WHERE COALESCE(wcs.cycle_time_acknowledged, false) = false
             )
         """)
 
 
-class RunningCavityHideLog(models.Model):
-    _name = 'running.cavity.hide.log'
-    _description = 'Running Cavity Hidden Records'
+
+class StdCycleTimeReasonLog(models.Model):
+    _name = 'std.cycle.time.reason.log'
+    _description = 'Standard Cycle Time Reason Log'
 
     report_key = fields.Char(required=True, index=True)
     reason_id = fields.Many2one('running.cavity.reason', required=True)
+    action = fields.Char(required=True)
     hidden_by = fields.Many2one('res.users', default=lambda self: self.env.user)
     hidden_on = fields.Datetime(default=fields.Datetime.now)
 

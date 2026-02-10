@@ -1,24 +1,42 @@
 from odoo import models, fields, tools
 
 
+class MrpWorkorder(models.Model):
+    _inherit = 'mrp.workorder'
+
+    production_delay_acknowledged = fields.Boolean(default=False)
+    production_delay_reason_id = fields.Many2one(
+        'running.cavity.reason',
+        string='Reason'
+    )
+    production_delay_acknowledged_by = fields.Many2one(
+        'res.users',
+        string='Action By'
+    )
+
 class ProductionDelayReasonWizard(models.TransientModel):
     _name = 'production.delay.reason.wizard'
     _description = 'Production Delay Reason Wizard'
 
-    production_delay_id = fields.Many2one(
-        'production.delay.report', string='Production Delay Report', required=True
+    workorder_id = fields.Many2one(
+        'mrp.workorder',
+        required=True,
+        readonly=True
     )
     reason_id = fields.Many2one(
-        'running.cavity.reason', string='Reason', required=True
+        'running.cavity.reason',
+        required=True
     )
 
     def action_confirm(self):
-        self.env['production.delay.action.log'].create({
-            'report_id': self.production_delay_id.id,
-            'reason_id': self.reason_id.id,
-            'action_by': self.env.user.id,
+        self.ensure_one()
+        self.workorder_id.write({
+            'production_delay_acknowledged': True,
+            'production_delay_reason_id': self.reason_id.id,
+            'production_delay_acknowledged_by': self.env.user.id,
         })
         return {'type': 'ir.actions.act_window_close'}
+
 
 class ProductionDelayReport(models.Model):
     _name = 'production.delay.report'
@@ -51,41 +69,36 @@ class ProductionDelayReport(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_production_delay_id': self.id,
+                'default_workorder_id': self.id,
             }
         }
+
 
     def action_report_delay(self):
         return self.action_hide()
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'production_delay_report')
-
         self.env.cr.execute("""
-            CREATE VIEW production_delay_report AS (
+            CREATE OR REPLACE VIEW production_delay_report AS (
                 SELECT
-                    row_number() OVER () AS id,
-
+                    wo.id AS id,  -- REAL workorder ID
                     wo.date_start::date AS wo_date,
                     mp.name AS wo_no,
-
                     wo.workcenter_id AS machine_id,
                     mp.product_id AS product_id,
-
                     mp.product_qty AS qty,
-
                     NULL::timestamp AS planned_start_date,
                     wo.date_start AS actual_start_date,
-
                     wo.date_finished::date AS exp_delivery_date,
                     wo.date_finished::date AS production_close_date,
                     wo.date_finished AS production_end_date,
-
                     0 AS production_delay
-
                 FROM mrp_workorder wo
                 JOIN mrp_production mp ON mp.id = wo.production_id
-                WHERE wo.date_start IS NOT NULL
+                WHERE
+                    wo.date_start IS NOT NULL
+                    AND COALESCE(wo.production_delay_acknowledged, false) = false
             )
         """)
 

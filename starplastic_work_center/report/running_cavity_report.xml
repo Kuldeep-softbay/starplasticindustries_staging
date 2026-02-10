@@ -7,7 +7,7 @@
         <list>
             <field name="date" optional="show"/>
             <field name="workorder_no" optional="show"/>
-            <field name="workcenter_id" optional="show"/>
+            <field name="machine_id" optional="show"/>
             <field name="shift_display" optional="show"/>
             <field name="product_id" optional="show"/>
             <field name="supervisor_one_id" optional="show"/>
@@ -52,7 +52,6 @@
     <field name="arch" type="xml">
         <form string="Acknowledge Running Cavity">
             <group>
-                <field name="running_cavity_id" invisible="1"/>
                 <field name="reason_id"/>
                 <field name="action"/>
             </group>

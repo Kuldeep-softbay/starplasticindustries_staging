@@ -10,7 +10,7 @@
         <field name="time" optional="show"/>
         <field name="operator_one_id" optional="show"/>
         <field name="operator_two_id" optional="show"/>
-        <field name="unit_weight" optional="show"/>
+        <field name="weight_gm" optional="show"/>
         <field name="rejection_reason" optional="show"/>
         <field name="shut_down" optional="show"/>
         <field name="produced_weight_kg" optional="show"/>

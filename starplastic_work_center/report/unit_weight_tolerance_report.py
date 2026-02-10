@@ -1,19 +1,41 @@
 from odoo import models, fields, tools
 
+class WorkCenterShift(models.Model):
+    _inherit = 'work.center.shift'
+
+    unit_weight_acknowledged = fields.Boolean(default=False)
+    unit_weight_reason_id = fields.Many2one(
+        'running.cavity.reason',
+        string='Reason'
+    )
+    unit_weight_action = fields.Char(string='Action')
+    unit_weight_acknowledged_by = fields.Many2one(
+        'res.users',
+        string='Action By'
+    )
+
 class UnitWeightToleranceWizard(models.TransientModel):
     _name = 'unit.weight.tolerance.wizard'
     _description = 'Unit Weight Tolerance Wizard'
 
-    unit_weight_tolerance_id = fields.Many2one('unit.weight.tolerance.report', string='Unit Weight Tolerance Report')
-    reason_id = fields.Many2one('running.cavity.reason', string='Reason for Hiding')
-    action = fields.Char(string='Action')
-
+    shift_id = fields.Many2one(
+        'work.center.shift',
+        required=True,
+        readonly=True
+    )
+    reason_id = fields.Many2one(
+        'running.cavity.reason',
+        required=True
+    )
+    action = fields.Char(required=True)
 
     def action_confirm(self):
-        self.env['unit.weight.tolerance.action.log'].create({
-            'report_id': self.unit_weight_tolerance_id.id,
-            'reason_id': self.reason_id.id,
-            'action_by': self.env.user.id,
+        self.ensure_one()
+        self.shift_id.write({
+            'unit_weight_acknowledged': True,
+            'unit_weight_reason_id': self.reason_id.id,
+            'unit_weight_action': self.action,
+            'unit_weight_acknowledged_by': self.env.user.id,
         })
         return {'type': 'ir.actions.act_window_close'}
 
@@ -26,22 +48,15 @@ class UnitWeightToleranceReport(models.Model):
     workorder_no = fields.Char(string='W.O No')
     machine_id = fields.Many2one('mrp.workcenter', string='Machine')
     shift_id = fields.Many2one('work.center.shift', string='Shift')
-    shift_display = fields.Char(
-        compute='_compute_shift_display',
-        store=False,
-    )
+    shift_display = fields.Char(compute='_compute_shift_display', store=False)
     product_id = fields.Many2one('product.product', string='Item')
-
     supervisor_one_id = fields.Many2one('res.users', string='Supervisor 1')
     supervisor_two_id = fields.Many2one('res.users', string='Supervisor 2')
-
     time = fields.Char(string='Time')
-
     actual_weight = fields.Float(string='Actual Weight')
     std_weight = fields.Float(string='Std Weight')
-
     tolerance = fields.Float(string='Tolerance (+/-)')
-    action = fields.Char(string='Action')
+
 
     def _compute_shift_display(self):
         for rec in self:
@@ -55,50 +70,41 @@ class UnitWeightToleranceReport(models.Model):
         return {
             'type': 'ir.actions.act_window',
             'name': 'Acknowledge Unit Weight Tolerance',
-            'res_model': 'unit.weight.tolerance.reason.wizard',
+            'res_model': 'unit.weight.tolerance.wizard',
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_unit_weight_tolerance_id': self.id,
+                'default_shift_id': self.shift_id.id,
             }
         }
+
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'unit_weight_tolerance_report')
         self.env.cr.execute("""
-            CREATE VIEW unit_weight_tolerance_report AS (
+            CREATE OR REPLACE VIEW unit_weight_tolerance_report AS (
                 SELECT
                     row_number() OVER () AS id,
-
-                    wcs.date AS date,
+                    wcs.date,
                     mo.name AS workorder_no,
                     wo.workcenter_id AS machine_id,
                     wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
-
-                    wcs.supervisor_one_id AS supervisor_one_id,
-                    wcs.supervisor_two_id AS supervisor_two_id,
-
+                    wcs.supervisor_one_id,
+                    wcs.supervisor_two_id,
                     ''::varchar AS time,
-
                     wcs.unit_waight AS actual_weight,
                     pt.weight AS std_weight,
-
-                    (wcs.unit_waight - pt.weight) AS tolerance,
-
-                    ''::varchar AS action
-
+                    (wcs.unit_waight - pt.weight) AS tolerance
                 FROM work_center_shift wcs
-                JOIN mrp_production mo
-                    ON mo.id = wcs.production_id
-                JOIN mrp_workorder wo
-                    ON wo.production_id = mo.id
-                JOIN product_product pp
-                    ON pp.id = wcs.mold_id
-                JOIN product_template pt
-                    ON pt.id = pp.product_tmpl_id
+                JOIN mrp_production mo ON mo.id = wcs.production_id
+                JOIN mrp_workorder wo ON wo.production_id = mo.id
+                JOIN product_product pp ON pp.id = wcs.mold_id
+                JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                WHERE COALESCE(wcs.unit_weight_acknowledged, false) = false
             )
         """)
+
 
 class UnitWeightToleranceActionLog(models.Model):
     _name = 'unit.weight.tolerance.action.log'
