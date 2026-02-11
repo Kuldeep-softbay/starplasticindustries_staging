@@ -14,6 +14,9 @@ class WorkCenterShift(models.Model):
         'res.users',
         string='Action By'
     )
+    store_inward_kg = fields.Float(
+        string="Production KG Inward by Store"
+    )
 
 class ErrorSetToleranceReasonWizard(models.TransientModel):
     _name = 'error.set.tolerance.reason.wizard'
@@ -93,22 +96,67 @@ class ErrorSetToleranceReport(models.Model):
             CREATE OR REPLACE VIEW error_set_tolerance_report AS (
                 SELECT
                     row_number() OVER () AS id,
+
                     wcs.date,
                     mo.name AS workorder_no,
-                    wcs.mold_id AS product_id,
+                    mo.product_id AS product_id,
                     wo.workcenter_id AS workcenter_id,
                     wcs.id AS shift_id,
-                    wcs.unit_waight AS production_kg_workshop,
-                    wcs.unit_waight AS production_kg_store,
-                    (wcs.unit_waight - wcs.unit_waight) AS difference_kg,
+
+                    /* Workshop Production */
+                    COALESCE(SUM(whe.produced_weight_kg), 0)
+                        AS production_kg_workshop,
+
+                    /* Store Inward */
+                    COALESCE(wcs.store_inward_kg, 0)
+                        AS production_kg_store,
+
+                    /* Difference KG */
+                    (
+                        COALESCE(SUM(whe.produced_weight_kg), 0)
+                        - COALESCE(wcs.store_inward_kg, 0)
+                    ) AS difference_kg,
+
+                    /* Correct Difference Percentage */
                     CASE
-                        WHEN wcs.unit_waight = 0 THEN 0
-                        ELSE 0
+                        WHEN COALESCE(SUM(whe.produced_weight_kg), 0) = 0 THEN 0
+                        ELSE
+                            ROUND(
+                                (
+                                    (
+                                        COALESCE(SUM(whe.produced_weight_kg), 0)::numeric
+                                        - COALESCE(wcs.store_inward_kg, 0)::numeric
+                                    )
+                                    /
+                                    NULLIF(
+                                        COALESCE(SUM(whe.produced_weight_kg), 0)::numeric,
+                                        0
+                                    )
+                                ) * 100,
+                                2
+                            )
                     END AS difference_percent
+
                 FROM work_center_shift wcs
-                JOIN mrp_production mo ON mo.id = wcs.production_id
-                JOIN mrp_workorder wo ON wo.production_id = mo.id
+
+                JOIN mrp_production mo
+                    ON mo.id = wcs.production_id
+
+                JOIN mrp_workorder wo
+                    ON wo.production_id = mo.id
+
+                LEFT JOIN work_center_hourly_entry whe
+                    ON whe.shift_id = wcs.id
+
                 WHERE COALESCE(wcs.error_tolerance_acknowledged, false) = false
+
+                GROUP BY
+                    wcs.id,
+                    wcs.date,
+                    mo.name,
+                    mo.product_id,
+                    wo.workcenter_id,
+                    wcs.store_inward_kg
             )
         """)
 

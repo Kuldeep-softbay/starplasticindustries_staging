@@ -13,6 +13,15 @@ class MrpWorkorder(models.Model):
         'res.users',
         string='Action By'
     )
+    production_delay_action = fields.Char(
+        string='Action'
+    )
+
+class MrpProduction(models.Model):
+    _inherit = "mrp.production"
+
+    party_id = fields.Many2one("job.party.work")
+
 
 class ProductionDelayReasonWizard(models.TransientModel):
     _name = 'production.delay.reason.wizard'
@@ -27,15 +36,26 @@ class ProductionDelayReasonWizard(models.TransientModel):
         'running.cavity.reason',
         required=True
     )
+    action = fields.Char(required=True)
+
 
     def action_confirm(self):
         self.ensure_one()
+
+        self.env['production.delay.action.log'].create({
+            'workorder_id': self.workorder_id.id,
+            'reason_id': self.reason_id.id,
+            'action': self.action,
+        })
+
         self.workorder_id.write({
             'production_delay_acknowledged': True,
             'production_delay_reason_id': self.reason_id.id,
             'production_delay_acknowledged_by': self.env.user.id,
         })
+
         return {'type': 'ir.actions.act_window_close'}
+
 
 
 class ProductionDelayReport(models.Model):
@@ -48,6 +68,7 @@ class ProductionDelayReport(models.Model):
 
     machine_id = fields.Many2one('mrp.workcenter', string='Machine')
     product_id = fields.Many2one('product.product', string='Item')
+    party_id = fields.Many2one('job.party.work', string='Party')
 
     qty = fields.Float(string='Qty')
 
@@ -82,22 +103,48 @@ class ProductionDelayReport(models.Model):
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW production_delay_report AS (
                 SELECT
-                    wo.id AS id,  -- REAL workorder ID
+                    wo.id AS id,
+
                     wo.date_start::date AS wo_date,
                     mp.name AS wo_no,
                     wo.workcenter_id AS machine_id,
+
+                    NULL::integer AS party_id,
+
                     mp.product_id AS product_id,
                     mp.product_qty AS qty,
-                    NULL::timestamp AS planned_start_date,
+
+                    wo.planned_start_date,
                     wo.date_start AS actual_start_date,
-                    wo.date_finished::date AS exp_delivery_date,
+
+                    (wo.date_start +
+                        (wo.duration_expected * interval '1 minute')
+                    ) AS exp_delivery_date,
+
                     wo.date_finished::date AS production_close_date,
                     wo.date_finished AS production_end_date,
-                    0 AS production_delay
+
+                    ROUND(
+                        EXTRACT(EPOCH FROM (
+                            wo.date_finished -
+                            (wo.date_start +
+                                (wo.duration_expected * interval '1 minute')
+                            )
+                        )) / 60
+                    )::integer AS production_delay
+
                 FROM mrp_workorder wo
-                JOIN mrp_production mp ON mp.id = wo.production_id
+                JOIN mrp_production mp
+                    ON mp.id = wo.production_id
+
                 WHERE
-                    wo.date_start IS NOT NULL
+                    wo.state = 'done'
+                    AND wo.date_finished IS NOT NULL
+                    AND wo.duration_expected IS NOT NULL
+                    AND wo.date_finished >
+                        (wo.date_start +
+                            (wo.duration_expected * interval '1 minute')
+                        )
                     AND COALESCE(wo.production_delay_acknowledged, false) = false
             )
         """)
@@ -111,3 +158,4 @@ class ProductionDelayActionLog(models.Model):
     reason_id = fields.Many2one('running.cavity.reason')
     action_by = fields.Many2one('res.users', default=lambda self: self.env.user)
     date = fields.Datetime(default=fields.Datetime.now)
+    action = fields.Char()

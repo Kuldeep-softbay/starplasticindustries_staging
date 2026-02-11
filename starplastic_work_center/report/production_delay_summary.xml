@@ -5,20 +5,21 @@
         <field name="model">production.delay.summary</field>
         <field name="arch" type="xml">
             <list create="false" edit="false">
-                <field name="wo_date"/>
-                <field name="wo_no"/>
-                <field name="machine_id"/>
-                <field name="product_id"/>
-                <field name="qty"/>
-                <field name="planned_start_date"/>
-                <field name="actual_start_date"/>
-                <field name="exp_delivery_date"/>
-                <field name="production_close_date"/>
-                <field name="production_end_date"/>
-                <field name="production_delay"/>
-                <field name="action"/>
-                <field name="reason_id"/>
-                <field name="action_by"/>
+                <field name="wo_date" optional="show"/>
+                <field name="wo_no" optional="show"/>
+                <field name="party_id" optional="show"/>
+                <field name="product_id" optional="show"/>
+                <field name="machine_id" optional="show"/>
+                <field name="qty" optional="show"/>
+                <field name="planned_start_date" optional="show"/>
+                <field name="actual_start_date" optional="show"/>
+                <field name="exp_delivery_date" optional="show"/>
+                <field name="production_close_date" optional="show"/>
+                <field name="production_end_date" optional="show"/>
+                <field name="production_delay" optional="show"/>
+                <field name="action" optional="show"/>
+                <field name="reason_id" optional="show"/>
+                <field name="action_by" optional="show"/>
             </list>
         </field>
     </record>

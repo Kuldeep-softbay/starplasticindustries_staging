@@ -11,6 +11,7 @@ class ProductionDelaySummary(models.Model):
 
     machine_id = fields.Many2one('mrp.workcenter', string='Machine')
     product_id = fields.Many2one('product.product', string='Item')
+    party_id = fields.Many2one('job.party.work', string='Party')
 
     qty = fields.Float(string='Qty')
 
@@ -34,11 +35,12 @@ class ProductionDelaySummary(models.Model):
                 SELECT
                     wo.id AS id,  -- REAL workorder ID
                     wo.date_start::date AS wo_date,
+                    mp.party_id AS party_id,
                     mp.name AS wo_no,
                     wo.workcenter_id AS machine_id,
                     mp.product_id AS product_id,
                     mp.product_qty AS qty,
-                    NULL::timestamp AS planned_start_date,
+                    wo.planned_start_date,
                     wo.date_start AS actual_start_date,
                     wo.date_finished::date AS exp_delivery_date,
                     wo.date_finished::date AS production_close_date,
@@ -54,5 +56,3 @@ class ProductionDelaySummary(models.Model):
                     AND COALESCE(wo.production_delay_acknowledged, false) = true
             )
         """)
-
-

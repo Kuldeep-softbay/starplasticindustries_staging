@@ -43,24 +43,64 @@ class ErrorSetToleranceSummary(models.Model):
             CREATE OR REPLACE VIEW error_set_tolerance_summary AS (
                 SELECT
                     row_number() OVER () AS id,
+
                     wcs.date,
                     mo.name AS workorder_no,
                     wo.workcenter_id AS machine_id,
                     wcs.id AS shift_id,
-                    wcs.mold_id AS product_id,
-                    wcs.unit_waight AS production_kg_workshop,
-                    wcs.unit_waight AS production_kg_store,
-                    (wcs.unit_waight - wcs.unit_waight) AS difference_kg,
+                    mo.product_id AS product_id,
+
+                    COALESCE(SUM(whe.produced_weight_kg), 0)
+                        AS production_kg_workshop,
+
+                    COALESCE(wcs.store_inward_kg, 0)
+                        AS production_kg_store,
+
+                    COALESCE(SUM(whe.produced_weight_kg), 0)
+                        - COALESCE(wcs.store_inward_kg, 0)
+                        AS difference_kg,
+
                     CASE
-                        WHEN wcs.unit_waight = 0 THEN 0
-                        ELSE 0
+                        WHEN COALESCE(SUM(whe.produced_weight_kg), 0) = 0 THEN 0
+                        ELSE
+                            ROUND(
+                                (
+                                    (
+                                        COALESCE(SUM(whe.produced_weight_kg), 0)
+                                        - COALESCE(wcs.store_inward_kg, 0)
+                                    )
+                                    / NULLIF(SUM(whe.produced_weight_kg), 0)
+                                )::numeric * 100,
+                                2
+                            )
                     END AS difference_percent,
+
                     wcs.error_tolerance_action AS action,
                     wcs.error_tolerance_reason_id AS reason_id,
                     wcs.error_tolerance_acknowledged_by AS action_by
+
                 FROM work_center_shift wcs
-                JOIN mrp_production mo ON mo.id = wcs.production_id
-                JOIN mrp_workorder wo ON wo.production_id = mo.id
+
+                JOIN mrp_production mo
+                    ON mo.id = wcs.production_id
+
+                JOIN mrp_workorder wo
+                    ON wo.production_id = mo.id
+
+                LEFT JOIN work_center_hourly_entry whe
+                    ON whe.shift_id = wcs.id
+
                 WHERE COALESCE(wcs.error_tolerance_acknowledged, false) = true
+
+                GROUP BY
+                    wcs.id,
+                    wcs.date,
+                    mo.name,
+                    wo.workcenter_id,
+                    mo.product_id,
+                    wcs.store_inward_kg,
+                    wcs.error_tolerance_action,
+                    wcs.error_tolerance_reason_id,
+                    wcs.error_tolerance_acknowledged_by
             )
         """)
