@@ -39,6 +39,12 @@
         'report/production_delay_summary.xml',
         'report/machine_data_report.xml',
     ],
+    "assets": {
+        "web.assets_backend": [
+            "starplastic_work_center/static/src/js/control_panel_patch.js",
+            "starplastic_work_center/static/src/xml/control_panel_inherit.xml",
+        ],
+    },
     'installable': True,
     'application': False,
     'license': 'LGPL-3',

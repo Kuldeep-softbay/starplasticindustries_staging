@@ -52,7 +52,7 @@ class UnitWeightToleranceReport(models.Model):
     product_id = fields.Many2one('product.product', string='Item')
     supervisor_one_id = fields.Many2one('res.users', string='Supervisor 1')
     supervisor_two_id = fields.Many2one('res.users', string='Supervisor 2')
-    time = fields.Char(string='Time')
+    time_slot = fields.Char(string='Time Slot')
     actual_weight = fields.Float(string='Actual Weight')
     std_weight = fields.Float(string='Std Weight')
     tolerance = fields.Float(string='Tolerance (+/-)')
@@ -85,23 +85,41 @@ class UnitWeightToleranceReport(models.Model):
             CREATE OR REPLACE VIEW unit_weight_tolerance_report AS (
                 SELECT
                     row_number() OVER () AS id,
-                    wcs.date,
+
+                    DATE(whe.create_date) AS date,
                     mo.name AS workorder_no,
                     wo.workcenter_id AS machine_id,
-                    wcs.id AS shift_id,
-                    wcs.mold_id AS product_id,
-                    wcs.supervisor_one_id,
-                    wcs.supervisor_two_id,
-                    ''::varchar AS time,
-                    wcs.unit_waight AS actual_weight,
+                    whe.shift_id AS shift_id,
+                    mo.product_id AS product_id,
+
+                    ws.supervisor_one_id,
+                    ws.supervisor_two_id,
+
+                    whe.time AS time_slot,
+                    whe.unit_weight AS actual_weight,
+
                     pt.weight AS std_weight,
-                    (wcs.unit_waight - pt.weight) AS tolerance
-                FROM work_center_shift wcs
-                JOIN mrp_production mo ON mo.id = wcs.production_id
-                JOIN mrp_workorder wo ON wo.production_id = mo.id
-                JOIN product_product pp ON pp.id = wcs.mold_id
-                JOIN product_template pt ON pt.id = pp.product_tmpl_id
-                WHERE COALESCE(wcs.unit_weight_acknowledged, false) = false
+
+                    (whe.unit_weight - pt.weight) AS tolerance
+
+                FROM work_center_hourly_entry whe
+
+                JOIN mrp_production mo
+                    ON mo.id = whe.production_id
+
+                JOIN mrp_workorder wo
+                    ON wo.production_id = mo.id
+
+                JOIN work_center_shift ws
+                    ON ws.id = whe.shift_id
+
+                JOIN product_product pp
+                    ON pp.id = mo.product_id
+
+                JOIN product_template pt
+                    ON pt.id = pp.product_tmpl_id
+
+                WHERE COALESCE(ws.unit_weight_acknowledged, false) = false
             )
         """)
 

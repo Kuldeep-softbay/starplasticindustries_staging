@@ -44,7 +44,6 @@ class ErrorSetToleranceReasonWizard(models.TransientModel):
         return {'type': 'ir.actions.act_window_close'}
 
 
-
 class ErrorSetToleranceReport(models.Model):
     _name = 'error.set.tolerance.report'
     _description = 'Error Set Tolerance Report'
@@ -159,8 +158,6 @@ class ErrorSetToleranceReport(models.Model):
                     wcs.store_inward_kg
             )
         """)
-
-
 
 class ErrorSetToleranceActionLog(models.Model):
     _name = 'error.set.tolerance.action.log'

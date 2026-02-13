@@ -1,6 +1,14 @@
 from odoo import models, fields, tools
 
 
+class WcDowntimeReason(models.Model):
+    _inherit = "wc.downtime.reason"
+
+    affect_product_efficiency = fields.Boolean(
+        string="Affect Product Efficiency"
+    )
+
+
 class MrpProductionSlip(models.Model):
     _name = "mrp.production.slip"
     _description = "Production Slip Report"
@@ -15,6 +23,7 @@ class MrpProductionSlip(models.Model):
     product_id = fields.Many2one("product.product", string="Product", readonly=True)
     shift_id = fields.Many2one("work.center.shift", string="Shift", readonly=True)
     production_id = fields.Many2one("mrp.production", string="MO", readonly=True)
+
     shift_display = fields.Char(
         compute='_compute_shift_display',
         store=False,
@@ -31,7 +40,6 @@ class MrpProductionSlip(models.Model):
 
     operator_one_id = fields.Many2one("res.users", string="Operator 1", readonly=True)
     operator_two_id = fields.Many2one("res.users", string="Operator 2", readonly=True)
-
     supervisor_one_id = fields.Many2one("res.users", string="Supervisor 1", readonly=True)
     supervisor_two_id = fields.Many2one("res.users", string="Supervisor 2", readonly=True)
 
@@ -54,6 +62,7 @@ class MrpProductionSlip(models.Model):
     reason_id = fields.Many2one("wc.downtime.reason", string="Reason", readonly=True)
     sub_reason_id = fields.Many2one("wc.downtime.subreason", string="Sub Reason", readonly=True)
     explanation = fields.Char(string="Explanation", readonly=True)
+
     efficiency = fields.Float(string="Efficiency", readonly=True)
     product_efficiency = fields.Float(string="Product Efficiency", readonly=True)
 
@@ -78,9 +87,8 @@ class MrpProductionSlip(models.Model):
 
                     whe.operator_one_id,
                     whe.operator_two_id,
-                    NULL::integer AS supervisor_one_id,
-                    NULL::integer AS supervisor_two_id,
-
+                    ws.supervisor_one_id,
+                    ws.supervisor_two_id,
 
                     whe.unit_weight,
                     mo.cavity AS runing_cavity,
@@ -95,12 +103,53 @@ class MrpProductionSlip(models.Model):
                     whe.reject_weight_kg AS rejection_kg,
                     whe.rejection_reason,
 
-                    rl.duration_minutes AS shut_down_time,
-                    rl.reason_id,
-                    rl.sub_reason_id,
+                    COALESCE(SUM(rl.duration_minutes), 0) AS shut_down_time,
+                    MAX(rl.reason_id) AS reason_id,
+                    MAX(rl.sub_reason_id) AS sub_reason_id,
+
                     NULL::text AS explanation,
-                    NULL::float AS efficiency,
-                    NULL::float AS product_efficiency
+
+                    /* Worker Efficiency */
+                    CASE
+                        WHEN wo.duration_expected IS NOT NULL
+                             AND wo.duration_expected != 0
+                             AND mo.cavity IS NOT NULL
+                             AND mo.cavity != 0
+                        THEN
+                            (
+                                whe.produced_qty_number /
+                                NULLIF((3600.0 / wo.duration_expected) * mo.cavity, 0)
+                            )
+                            -
+                            (COALESCE(SUM(rl.duration_minutes), 0) / 60.0)
+                        ELSE 0
+                    END AS efficiency,
+
+                    /* Product Efficiency */
+                    CASE
+                        WHEN wo.duration_expected IS NOT NULL
+                             AND wo.duration_expected != 0
+                             AND mo.cavity IS NOT NULL
+                             AND mo.cavity != 0
+                        THEN
+                            (
+                                whe.produced_qty_number /
+                                NULLIF((3600.0 / wo.duration_expected) * mo.cavity, 0)
+                            )
+                            -
+                            (
+                                COALESCE(
+                                    SUM(
+                                        CASE
+                                            WHEN r.affect_product_efficiency = TRUE
+                                            THEN rl.duration_minutes
+                                            ELSE 0
+                                        END
+                                    ), 0
+                                ) / 60.0
+                            )
+                        ELSE 0
+                    END AS product_efficiency
 
                 FROM work_center_hourly_entry whe
 
@@ -110,7 +159,38 @@ class MrpProductionSlip(models.Model):
                 LEFT JOIN mrp_workorder wo
                     ON wo.production_id = mo.id
 
+                LEFT JOIN work_center_shift ws
+                    ON ws.id = whe.shift_id
+
                 LEFT JOIN work_center_hourly_entry_reason_line rl
                     ON rl.hourly_entry_id = whe.id
+
+                LEFT JOIN wc_downtime_reason r
+                    ON r.id = rl.reason_id
+
+                GROUP BY
+                    whe.id,
+                    wo.workcenter_id,
+                    whe.time,
+                    whe.create_date,
+                    whe.production_id,
+                    mo.product_id,
+                    whe.shift_id,
+                    mo.origin,
+                    wo.name,
+                    whe.operator_one_id,
+                    whe.operator_two_id,
+                    ws.supervisor_one_id,
+                    ws.supervisor_two_id,
+                    whe.unit_weight,
+                    mo.cavity,
+                    wo.duration_expected,
+                    whe.actual_cycle_time,
+                    whe.qc_check,
+                    whe.produced_qty_number,
+                    whe.produced_weight_kg,
+                    whe.reject_qty_number,
+                    whe.reject_weight_kg,
+                    whe.rejection_reason
             )
         """)

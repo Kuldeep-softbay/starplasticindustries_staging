@@ -13,6 +13,7 @@
                 <field name="product_id"/>
                 <field name="supervisor_one_id"/>
                 <field name="supervisor_two_id"/>
+                <field name="time"/>
                 <field name="actual_weight"/>
                 <field name="std_weight"/>
                 <field name="tolerance"/>

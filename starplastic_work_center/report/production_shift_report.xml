@@ -94,4 +94,5 @@
               parent="mrp.menu_mrp_reporting"
               action="action_production_slip"
               sequence="30"/>
+
 </odoo>

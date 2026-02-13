@@ -5,13 +5,17 @@ class ProductEfficiencySummary(models.Model):
     _name = 'product.efficiency.summary'
     _description = 'Product Efficiency Summary Report'
     _auto = False
+    _order = 'date desc'
+
+    date = fields.Date(string='Date')
 
     product_id = fields.Many2one('product.product', string='Item')
 
     avg_weight = fields.Float(string='Avg Weight')
     cavity = fields.Integer(string='No of Cavity')
-    std_production = fields.Float(string='Std Production')
-    std_cycle_time = fields.Float(string='Std Cycle Time')
+
+    std_production = fields.Float(string='Std Production / Hour')
+    std_cycle_time = fields.Float(string='Std Cycle Time (Sec)')
 
     total_production_nos = fields.Float(string='Total Production Nos')
     total_production_kg = fields.Float(string='Total Production KG')
@@ -32,31 +36,102 @@ class ProductEfficiencySummary(models.Model):
                 SELECT
                     row_number() OVER () AS id,
 
+                    DATE(whe.create_date) AS date,
+
                     pp.id AS product_id,
 
                     pt.weight AS avg_weight,
-                    wcs.cavity AS cavity,
+                    mo.cavity AS cavity,
 
-                    (wcs.cavity * 60) AS std_production,
-                    0.0 AS std_cycle_time,
+                    wo.duration_expected AS std_cycle_time,
 
-                    0.0 AS total_production_nos,
-                    SUM(wcs.unit_waight) AS total_production_kg,
+                    /* Standard Production Per Hour */
+                    CASE
+                        WHEN wo.duration_expected IS NOT NULL
+                             AND wo.duration_expected != 0
+                             AND mo.cavity IS NOT NULL
+                             AND mo.cavity != 0
+                        THEN
+                            (3600.0 / wo.duration_expected) * mo.cavity
+                        ELSE 0
+                    END AS std_production,
 
-                    0.0 AS production_minutes,
-                    0.0 AS production_hours,
+                    SUM(whe.produced_qty_number) AS total_production_nos,
+                    SUM(whe.produced_weight_kg) AS total_production_kg,
 
-                    0.0 AS actual_production_per_hour,
-                    0.0 AS efficiency
+                    /* Production Minutes */
+                    SUM(
+                        (whe.produced_qty_number * wo.duration_expected)
+                        / NULLIF(mo.cavity, 0)
+                    ) / 60.0 AS production_minutes,
 
-                FROM work_center_shift wcs
-                JOIN mrp_production mo ON mo.id = wcs.production_id
-                JOIN product_product pp ON pp.id = mo.product_id
-                JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                    /* Production Hours */
+                    SUM(
+                        (whe.produced_qty_number * wo.duration_expected)
+                        / NULLIF(mo.cavity, 0)
+                    ) / 3600.0 AS production_hours,
+
+                    /* Actual Production Per Hour */
+                    CASE
+                        WHEN SUM(
+                            (whe.produced_qty_number * wo.duration_expected)
+                            / NULLIF(mo.cavity, 0)
+                        ) > 0
+                        THEN
+                            SUM(whe.produced_qty_number) /
+                            (
+                                SUM(
+                                    (whe.produced_qty_number * wo.duration_expected)
+                                    / NULLIF(mo.cavity, 0)
+                                ) / 3600.0
+                            )
+                        ELSE 0
+                    END AS actual_production_per_hour,
+
+                    /* Efficiency % */
+                    CASE
+                        WHEN wo.duration_expected IS NOT NULL
+                             AND wo.duration_expected != 0
+                             AND mo.cavity IS NOT NULL
+                             AND mo.cavity != 0
+                        THEN
+                            (
+                                (
+                                    SUM(whe.produced_qty_number) /
+                                    NULLIF(
+                                        (
+                                            SUM(
+                                                (whe.produced_qty_number * wo.duration_expected)
+                                                / NULLIF(mo.cavity, 0)
+                                            ) / 3600.0
+                                        ), 0
+                                    )
+                                )
+                                /
+                                ((3600.0 / wo.duration_expected) * mo.cavity)
+                            ) * 100
+                        ELSE 0
+                    END AS efficiency
+
+                FROM work_center_hourly_entry whe
+
+                LEFT JOIN mrp_production mo
+                    ON mo.id = whe.production_id
+
+                LEFT JOIN mrp_workorder wo
+                    ON wo.production_id = mo.id
+
+                LEFT JOIN product_product pp
+                    ON pp.id = mo.product_id
+
+                LEFT JOIN product_template pt
+                    ON pt.id = pp.product_tmpl_id
 
                 GROUP BY
+                    DATE(whe.create_date),
                     pp.id,
                     pt.weight,
-                    wcs.cavity
+                    mo.cavity,
+                    wo.duration_expected
             )
         """)
