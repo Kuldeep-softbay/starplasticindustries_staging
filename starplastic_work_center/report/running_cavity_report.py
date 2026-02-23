@@ -55,7 +55,7 @@ class RunningCavityReport(models.Model):
     _auto = False
 
     date = fields.Date()
-    workorder_no = fields.Char("W.O. No")
+    lot_id = fields.Many2one('stock.lot', string="Batch Number")
     machine_id = fields.Many2one('mrp.workcenter', string="Machine")
     shift_id = fields.Many2one('work.center.shift', string="Shift")
     shift_display = fields.Char(
@@ -96,7 +96,7 @@ class RunningCavityReport(models.Model):
                 SELECT
                     row_number() OVER () AS id,
                     wcs.date,
-                    mo.name AS workorder_no,
+                    mo.lot_id,
                     wo.workcenter_id AS machine_id,
                     wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
@@ -108,7 +108,9 @@ class RunningCavityReport(models.Model):
                 JOIN mrp_production mo ON mo.id = wcs.production_id
                 JOIN mrp_workorder wo ON wo.production_id = mo.id
                 JOIN mrp_routing_workcenter rwc ON rwc.id = wo.operation_id
-                WHERE COALESCE(wcs.cavity_acknowledged, false) = false
+                WHERE
+                    COALESCE(wcs.cavity_acknowledged, false) = false
+                    AND COALESCE(wcs.cavity, 0) != COALESCE(rwc.cavity, 0)
             )
         """)
 

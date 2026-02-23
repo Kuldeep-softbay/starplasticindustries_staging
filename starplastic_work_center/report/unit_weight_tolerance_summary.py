@@ -7,7 +7,7 @@ class UnitWeightToleranceSummary(models.Model):
     _auto = False
 
     date = fields.Date(string='Date')
-    workorder_no = fields.Char(string='W.O No')
+    lot_id = fields.Many2one('stock.lot', string='Batch No')
     machine_id = fields.Many2one('mrp.workcenter', string='Machine')
     shift_id = fields.Many2one('work.center.shift', string='Shift')
     shift_desplay = fields.Char(
@@ -43,7 +43,8 @@ class UnitWeightToleranceSummary(models.Model):
                     row_number() OVER () AS id,
 
                     DATE(whe.create_date) AS date,
-                    mo.name AS workorder_no,
+                    mo.lot_id AS lot_id,
+
                     wo.workcenter_id AS machine_id,
                     whe.shift_id AS shift_id,
                     mo.product_id AS product_id,
@@ -78,6 +79,14 @@ class UnitWeightToleranceSummary(models.Model):
                 JOIN product_template pt
                     ON pt.id = pp.product_tmpl_id
 
-                WHERE COALESCE(ws.unit_weight_acknowledged, false) = true
+                LEFT JOIN stock_move_line sml
+                    ON sml.production_id = mo.id
+                    AND sml.product_id = mo.product_id
+
+                WHERE
+                    COALESCE(ws.unit_weight_acknowledged, false) = true
+                    AND whe.unit_weight IS NOT NULL
+                    AND pt.weight IS NOT NULL
+                    AND ABS(whe.unit_weight - pt.weight) > 0.0001
             )
         """)

@@ -7,7 +7,7 @@ class StdCycleTimeSummary(models.Model):
     _auto = False
 
     date = fields.Date()
-    workorder_no = fields.Char()
+    lot_id = fields.Many2one('stock.lot', string="Batch Number")
     machine_id = fields.Many2one('mrp.workcenter')
     shift_id = fields.Many2one('work.center.shift')
     shift_display = fields.Char(compute='_compute_shift_display', store=False)
@@ -38,23 +38,17 @@ class StdCycleTimeSummary(models.Model):
 
                     wcs.id AS shift_id,
                     wcs.date AS date,
-                    mo.name AS workorder_no,
+                    mo.lot_id,
                     wo.workcenter_id AS machine_id,
                     wcs.mold_id AS product_id,
 
                     wcs.supervisor_one_id,
                     wcs.supervisor_two_id,
 
-                    -- STANDARD / SET CYCLE TIME
                     rwc.cycle_time AS set_cycle_time,
-
-                    -- ACTUAL / RUNNING CYCLE TIME
                     wcs.cycle_time_sec AS std_cycle_time,
-
-                    -- TOLERANCE FROM PRODUCT
                     pt.unit_weight_tolerance AS tolerance,
 
-                    -- ACTION DETAILS
                     wcs.cycle_time_reason_id AS reason_id,
                     wcs.cycle_time_action AS action,
                     wcs.cycle_time_acknowledged_by AS action_by
@@ -71,9 +65,10 @@ class StdCycleTimeSummary(models.Model):
                 JOIN product_template pt
                     ON pt.id = pp.product_tmpl_id
 
-                WHERE COALESCE(wcs.cycle_time_acknowledged, false) = true
+                WHERE
+                    COALESCE(wcs.cycle_time_acknowledged, false) = true
+                    AND COALESCE(wcs.cycle_time_sec, 0) 
+                        != COALESCE(rwc.cycle_time, 0)
             )
         """)
-
-
 

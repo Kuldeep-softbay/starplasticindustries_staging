@@ -45,7 +45,7 @@ class UnitWeightToleranceReport(models.Model):
     _auto = False
 
     date = fields.Date(string='Date')
-    workorder_no = fields.Char(string='W.O No')
+    lot_id = fields.Many2one('stock.lot', string='Batch Number')
     machine_id = fields.Many2one('mrp.workcenter', string='Machine')
     shift_id = fields.Many2one('work.center.shift', string='Shift')
     shift_display = fields.Char(compute='_compute_shift_display', store=False)
@@ -78,7 +78,6 @@ class UnitWeightToleranceReport(models.Model):
             }
         }
 
-
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'unit_weight_tolerance_report')
         self.env.cr.execute("""
@@ -87,7 +86,7 @@ class UnitWeightToleranceReport(models.Model):
                     row_number() OVER () AS id,
 
                     DATE(whe.create_date) AS date,
-                    mo.name AS workorder_no,
+                    mo.lot_id,
                     wo.workcenter_id AS machine_id,
                     whe.shift_id AS shift_id,
                     mo.product_id AS product_id,
@@ -119,9 +118,19 @@ class UnitWeightToleranceReport(models.Model):
                 JOIN product_template pt
                     ON pt.id = pp.product_tmpl_id
 
-                WHERE COALESCE(ws.unit_weight_acknowledged, false) = false
-            )
-        """)
+                LEFT JOIN stock_move_line sml
+                    ON sml.production_id = mo.id
+                    AND sml.product_id = mo.product_id
+
+                WHERE
+                    COALESCE(ws.unit_weight_acknowledged, false) = false
+
+                    -- IMPORTANT CONDITION
+                    AND whe.unit_weight IS NOT NULL
+                    AND pt.weight IS NOT NULL
+                    AND whe.unit_weight <> pt.weight
+                )
+            """)
 
 
 class UnitWeightToleranceActionLog(models.Model):

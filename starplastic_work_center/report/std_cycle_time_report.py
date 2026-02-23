@@ -61,7 +61,7 @@ class StdCycleTimeReport(models.Model):
     _auto = False
 
     date = fields.Date()
-    workorder_no = fields.Char()
+    lot_id = fields.Many2one('stock.lot', string="Batch Number")
     machine_id = fields.Many2one('mrp.workcenter')
     shift_id = fields.Many2one('work.center.shift')
     shift_display = fields.Char(
@@ -105,22 +105,16 @@ class StdCycleTimeReport(models.Model):
 
                     wcs.id AS shift_id,
                     wcs.date AS date,
-                    mo.name AS workorder_no,
+                    mo.lot_id,
                     wo.workcenter_id AS machine_id,
                     wcs.mold_id AS product_id,
 
                     wcs.supervisor_one_id,
                     wcs.supervisor_two_id,
 
-                    -- SET / STANDARD CYCLE TIME (from routing)
                     rwc.cycle_time AS set_cycle_time,
-
-                    -- RUNNING / ACTUAL CYCLE TIME
                     wcs.cycle_time_sec AS running_cycle_time,
-
-                    -- TOLERANCE from Product
                     pt.unit_weight_tolerance AS tolerance,
-
                     wcs.hourly_target_qty AS hourly_target
 
                 FROM work_center_shift wcs
@@ -135,7 +129,10 @@ class StdCycleTimeReport(models.Model):
                 JOIN product_template pt
                     ON pt.id = pp.product_tmpl_id
 
-                WHERE COALESCE(wcs.cycle_time_acknowledged, false) = false
+                WHERE
+                    COALESCE(wcs.cycle_time_acknowledged, false) = false
+                    AND COALESCE(wcs.cycle_time_sec, 0) 
+                        != COALESCE(rwc.cycle_time, 0)
             )
         """)
 

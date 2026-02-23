@@ -35,7 +35,7 @@
         <field name="reason_id"/>
         <field name="duration_minutes"/>
         <field name="sub_reason_id"/>
-        <field name="actual_time_minutes"/>
+        <field name="explanation"/>
       </list>
     </field>
   </record>
@@ -69,6 +69,8 @@
               <field name="weight_gm"/>
               <field name="unit_weight"/>
               <field name="rejection_reason"/>
+              <field name="product_efficiency"/>
+              <field name="worker_efficiency"/>
             </group>
             <group string="Production">
               <field name="produced_weight_kg"/>

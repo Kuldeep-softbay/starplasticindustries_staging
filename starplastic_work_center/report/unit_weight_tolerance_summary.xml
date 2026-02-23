@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="date"/>
-                <field name="workorder_no"/>
+                <field name="lot_id"/>
                 <field name="machine_id"/>
                 <field name="shift_desplay"/>
                 <field name="product_id"/>

@@ -92,6 +92,49 @@ class WCShift(models.Model):
         compute='_compute_total_produced_qty',
         store=True
     )
+    remaining_qty = fields.Float(
+        string='Remaining Qty (Nos)',
+        compute='_compute_remaining_qty',
+        store=True
+    )
+
+    minimum_target_nos = fields.Float(
+        string='Minimum Target (Nos)',
+        compute='_compute_minimum_target',
+        store=True
+    )
+
+    minimum_target_kg = fields.Float(
+        string='Minimum Target (KG)',
+        compute='_compute_minimum_target',
+        store=True
+    )
+
+    @api.depends('hourly_target_qty', 'unit_waight')
+    def _compute_minimum_target(self):
+        for rec in self:
+            min_nos = rec.hourly_target_qty * 0.80  # 80% target
+            rec.minimum_target_nos = round(min_nos, 0)
+            rec.minimum_target_kg = round(min_nos * rec.unit_waight, 2)
+
+
+
+    @api.depends('production_id', 'production_id.product_qty', 'total_produced_qty')
+    def _compute_remaining_qty(self):
+        for rec in self:
+            if rec.production_id:
+                total_produced = sum(
+                    self.search([
+                        ('production_id', '=', rec.production_id.id)
+                    ]).mapped('total_produced_qty')
+                )
+                rec.remaining_qty = max(
+                    rec.production_id.product_qty - total_produced, 0
+                )
+            else:
+                rec.remaining_qty = 0
+
+
     downtime_summary_ids = fields.One2many(
         'work.center.shift.downtime.summary',
         'shift_id',

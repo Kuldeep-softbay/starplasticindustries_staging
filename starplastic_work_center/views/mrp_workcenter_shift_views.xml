@@ -63,6 +63,9 @@
         <field name="hourly_target_qty"/>
         <field name="state"/>
         <field name="total_produced_qty"/>
+        <field name="minimum_target_nos"/>
+        <field name="minimum_target_kg"/>
+        <field name="remaining_qty"/>
       </list>
     </field>
   </record>
@@ -85,6 +88,9 @@
               <field name="template_id"/>
               <field name="supervisor_one_id"/>
               <field name="supervisor_two_id"/>
+              <field name="remaining_qty"/>
+              <field name="minimum_target_nos"/>
+              <field name="minimum_target_kg"/>
             </group>
             <group string="Setup">
               <field name="mold_id"/>

@@ -117,6 +117,7 @@ class ProductionDelayReport(models.Model):
                     wo.planned_start_date,
                     wo.date_start AS actual_start_date,
 
+                    -- Expected End Datetime
                     (wo.date_start +
                         (wo.duration_expected * interval '1 minute')
                     ) AS exp_delivery_date,
@@ -124,6 +125,7 @@ class ProductionDelayReport(models.Model):
                     wo.date_finished::date AS production_close_date,
                     wo.date_finished AS production_end_date,
 
+                    -- Delay in Minutes
                     ROUND(
                         EXTRACT(EPOCH FROM (
                             wo.date_finished -
@@ -139,8 +141,12 @@ class ProductionDelayReport(models.Model):
 
                 WHERE
                     wo.state = 'done'
+                    AND wo.date_start IS NOT NULL
                     AND wo.date_finished IS NOT NULL
                     AND wo.duration_expected IS NOT NULL
+
+                    -- IMPORTANT CONDITION:
+                    -- Show only if finished AFTER expected time
                     AND wo.date_finished >
                         (wo.date_start +
                             (wo.duration_expected * interval '1 minute')

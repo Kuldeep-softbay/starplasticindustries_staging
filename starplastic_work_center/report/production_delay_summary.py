@@ -33,7 +33,8 @@ class ProductionDelaySummary(models.Model):
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW production_delay_summary AS (
                 SELECT
-                    wo.id AS id,  -- REAL workorder ID
+                    wo.id AS id,
+
                     wo.date_start::date AS wo_date,
                     mp.party_id AS party_id,
                     mp.name AS wo_no,
@@ -42,17 +43,47 @@ class ProductionDelaySummary(models.Model):
                     mp.product_qty AS qty,
                     wo.planned_start_date,
                     wo.date_start AS actual_start_date,
-                    wo.date_finished::date AS exp_delivery_date,
+
+                    -- Expected End Date
+                    (
+                        wo.date_start +
+                        (wo.duration_expected * interval '1 minute')
+                    )::date AS exp_delivery_date,
+
                     wo.date_finished::date AS production_close_date,
                     wo.date_finished AS production_end_date,
-                    0 AS production_delay,
+
+                    -- Delay in Minutes
+                    ROUND(
+                        EXTRACT(EPOCH FROM (
+                            wo.date_finished -
+                            (
+                                wo.date_start +
+                                (wo.duration_expected * interval '1 minute')
+                            )
+                        )) / 60
+                    )::integer AS production_delay,
+
                     wo.production_delay_reason_id AS reason_id,
                     wo.production_delay_acknowledged_by AS action_by,
                     ''::varchar AS action
                 FROM mrp_workorder wo
-                JOIN mrp_production mp ON mp.id = wo.production_id
+                JOIN mrp_production mp
+                    ON mp.id = wo.production_id
+
                 WHERE
-                    wo.date_start IS NOT NULL
+                    wo.state = 'done'
+                    AND wo.date_start IS NOT NULL
+                    AND wo.date_finished IS NOT NULL
+                    AND wo.duration_expected IS NOT NULL
+
+                    -- IMPORTANT: Only real delays
+                    AND wo.date_finished >
+                        (
+                            wo.date_start +
+                            (wo.duration_expected * interval '1 minute')
+                        )
+
                     AND COALESCE(wo.production_delay_acknowledged, false) = true
             )
         """)

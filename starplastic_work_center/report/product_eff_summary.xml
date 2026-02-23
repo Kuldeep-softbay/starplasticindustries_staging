@@ -18,6 +18,8 @@
                 <field name="production_minutes"/>
                 <field name="production_hours"/>
                 <field name="actual_production_per_hour"/>
+                <field name="last_shutdown_reason_id"/>
+                <field name="shutdown_minutes"/>
                 <field name="efficiency"/>
             </list>
         </field>

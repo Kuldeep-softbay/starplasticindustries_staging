@@ -39,7 +39,19 @@ class MrpProduction(models.Model):
         'production_id',
         string='Production Memos'
     )
-    row_matterial_returned = fields.Float(string="RM Returned")
+    rm_return_ids = fields.One2many(
+        'mrp.rm.return.line',
+        'production_id',
+        string="RM Return"
+    )
+
+    rm_return_count = fields.Integer(
+            compute="_compute_rm_return_count"
+        )
+
+    def _compute_rm_return_count(self):
+        for rec in self:
+            rec.rm_return_count = len(rec.rm_return_ids)
 
     pmemo_number = fields.Char()
     workcenter_id = fields.Many2one("mrp.workcenter")
@@ -55,7 +67,6 @@ class MrpProduction(models.Model):
     # ---- Raw Material Formulation ----
     rm_required_qty = fields.Float(compute="_compute_pmemo", store=True)
     rm_issued_qty = fields.Float(compute="_compute_pmemo", store=True)
-    rm_return_qty = fields.Float(compute="_compute_pmemo", store=True)
     rm_loss_qty = fields.Float(compute="_compute_pmemo", store=True)
     rm_loss_percent = fields.Float(compute="_compute_pmemo", store=True)
     rm_to_be_made = fields.Float(compute="_compute_pmemo", store=True)
@@ -73,6 +84,44 @@ class MrpProduction(models.Model):
         compute="_compute_pmemo_extra",
         store=True
     )
+
+    rm_return_ids = fields.One2many(
+        'mrp.rm.return.line',
+        'production_id',
+        string="RM Return"
+    )
+
+    rm_return_qty = fields.Float(
+        string="Rm Return Qty",
+        compute="_compute_rm_return_qty",
+        store=True
+    )
+
+    @api.depends('rm_return_ids.quantity')
+    def _compute_rm_return_qty(self):
+        for rec in self:
+            rec.rm_return_qty = sum(
+                rec.rm_return_ids.mapped('quantity')
+            )
+
+    shift_ids = fields.One2many(
+        'work.center.shift',
+        'production_id',
+        string="Shifts"
+    )
+
+    total_shift_produced_qty = fields.Float(
+        string="Total Produced (Nos)",
+        compute="_compute_total_shift_produced",
+        store=True
+    )
+
+    @api.depends('shift_ids.total_produced_qty')
+    def _compute_total_shift_produced(self):
+        for rec in self:
+            rec.total_shift_produced_qty = sum(
+                rec.shift_ids.mapped('total_produced_qty')
+            )
 
     @api.depends(
         "state",
@@ -128,13 +177,13 @@ class MrpProduction(models.Model):
         "bom_id",
         "move_raw_ids.move_line_ids.qty_done",
         "move_finished_ids.move_line_ids.qty_done",
+        "rm_return_qty",
     )
     def _compute_pmemo(self):
         for rec in self:
             # ---- Default values ----
             rec.rm_required_qty = 0.0
             rec.rm_issued_qty = 0.0
-            rec.rm_return_qty = 0.0
             rec.rm_loss_qty = 0.0
             rec.rm_loss_percent = 0.0
             rec.rm_to_be_made = 0.0
@@ -154,27 +203,27 @@ class MrpProduction(models.Model):
                 )
 
             # ---- RM ISSUED & RETURNED ----
-            issued = returned = 0.0
+            issued = 0.0
             for move in rec.move_raw_ids.filtered(lambda m: m.state == "done"):
                 for ml in move.move_line_ids:
                     if ml.location_dest_id.usage == "production":
                         issued += ml.qty_done
-                    elif ml.location_id.usage == "production":
-                        returned += ml.qty_done
 
             rec.rm_issued_qty = issued
-            rec.rm_return_qty = rec.row_matterial_returned
 
             # ---- RM LOSS ----
             loss = issued - rec.rm_required_qty - rec.rm_return_qty
             rec.rm_loss_qty = max(loss, 0.0)
             rec.rm_loss_percent = (
                 (rec.rm_loss_qty / rec.rm_required_qty) * 100
-                if rec.rm_required_qty
-                else 0.0
+                if rec.rm_required_qty else 0.0
             )
 
-            rec.rm_to_be_made = rec.rm_required_qty - rec.rm_issued_qty + rec.rm_return_qty
+            rec.rm_to_be_made = (
+                rec.rm_required_qty
+                - rec.rm_issued_qty
+                + rec.rm_return_qty
+            )
 
             # ---- FG QTY & WEIGHT ----
             fg_qty = sum(

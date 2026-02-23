@@ -113,6 +113,13 @@ class WorkCenterHourlyEntry(models.Model):
         digits=(16, 4)
         )
 
+    product_efficiency = fields.Float(
+        string="Product Efficiency (%)",
+    )
+
+    worker_efficiency = fields.Float(
+        string="Worker Efficiency (%)",
+    )
 
     @api.depends('weight_gm')
     def _compute_unit_weight(self):
@@ -228,3 +235,4 @@ class WorkCenterHourlyEntryReasonLine(models.Model):
         domain="[('reason_id','=',reason_id)]",
     )
     actual_time_minutes = fields.Float('Actual Time (min)')
+    explanation = fields.Char(string="Explanation")

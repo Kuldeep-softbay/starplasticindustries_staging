@@ -25,7 +25,14 @@ class ProductEfficiencySummary(models.Model):
 
     actual_production_per_hour = fields.Float(
         string='Actual Production Nos / Hour'
+        )
+    last_shutdown_reason_id = fields.Many2one(
+        'wc.downtime.reason',
+        string='Last Shutdown Reason'
     )
+
+    shutdown_minutes = fields.Float(string='Shutdown Minutes')
+
 
     efficiency = fields.Float(string='Efficiency (%)')
 
@@ -37,90 +44,86 @@ class ProductEfficiencySummary(models.Model):
                     row_number() OVER () AS id,
 
                     DATE(whe.create_date) AS date,
-
                     pp.id AS product_id,
 
-                    pt.weight AS avg_weight,
+                    (pt.weight * 1000.0) AS avg_weight,
+
                     mo.cavity AS cavity,
 
-                    wo.duration_expected AS std_cycle_time,
+                    rw.cycle_time AS std_cycle_time,
 
-                    /* Standard Production Per Hour */
-                    CASE
-                        WHEN wo.duration_expected IS NOT NULL
-                             AND wo.duration_expected != 0
-                             AND mo.cavity IS NOT NULL
-                             AND mo.cavity != 0
-                        THEN
-                            (3600.0 / wo.duration_expected) * mo.cavity
-                        ELSE 0
-                    END AS std_production,
+                    -- Standard Production per Hour
+                    (3600.0 / NULLIF(rw.cycle_time, 0))
+                    * NULLIF(mo.cavity, 0) AS std_production,
 
                     SUM(whe.produced_qty_number) AS total_production_nos,
                     SUM(whe.produced_weight_kg) AS total_production_kg,
 
-                    /* Production Minutes */
+                    -- Production Minutes
                     SUM(
-                        (whe.produced_qty_number * wo.duration_expected)
+                        (whe.produced_qty_number * rw.cycle_time)
                         / NULLIF(mo.cavity, 0)
                     ) / 60.0 AS production_minutes,
 
-                    /* Production Hours */
+                    -- Production Hours
                     SUM(
-                        (whe.produced_qty_number * wo.duration_expected)
+                        (whe.produced_qty_number * rw.cycle_time)
                         / NULLIF(mo.cavity, 0)
                     ) / 3600.0 AS production_hours,
 
-                    /* Actual Production Per Hour */
-                    CASE
-                        WHEN SUM(
-                            (whe.produced_qty_number * wo.duration_expected)
-                            / NULLIF(mo.cavity, 0)
-                        ) > 0
-                        THEN
-                            SUM(whe.produced_qty_number) /
-                            (
-                                SUM(
-                                    (whe.produced_qty_number * wo.duration_expected)
-                                    / NULLIF(mo.cavity, 0)
-                                ) / 3600.0
-                            )
-                        ELSE 0
-                    END AS actual_production_per_hour,
+                    -- Actual Production per Hour
+                    SUM(whe.produced_qty_number)
+                    /
+                    NULLIF(
+                        (
+                            SUM(
+                                (whe.produced_qty_number * rw.cycle_time)
+                                / NULLIF(mo.cavity, 0)
+                            ) / 3600.0
+                        ), 0
+                    ) AS actual_production_per_hour,
 
-                    /* Efficiency % */
-                    CASE
-                        WHEN wo.duration_expected IS NOT NULL
-                             AND wo.duration_expected != 0
-                             AND mo.cavity IS NOT NULL
-                             AND mo.cavity != 0
-                        THEN
-                            (
+                    -- Efficiency %
+                    (
+                        (
+                            SUM(whe.produced_qty_number)
+                            /
+                            NULLIF(
                                 (
-                                    SUM(whe.produced_qty_number) /
-                                    NULLIF(
-                                        (
-                                            SUM(
-                                                (whe.produced_qty_number * wo.duration_expected)
-                                                / NULLIF(mo.cavity, 0)
-                                            ) / 3600.0
-                                        ), 0
-                                    )
-                                )
-                                /
-                                ((3600.0 / wo.duration_expected) * mo.cavity)
-                            ) * 100
-                        ELSE 0
-                    END AS efficiency
+                                    SUM(
+                                        (whe.produced_qty_number * rw.cycle_time)
+                                        / NULLIF(mo.cavity, 0)
+                                    ) / 3600.0
+                                ), 0
+                            )
+                        )
+                        /
+                        NULLIF(
+                            (
+                                (3600.0 / NULLIF(rw.cycle_time, 0))
+                                * NULLIF(mo.cavity, 0)
+                            ), 0
+                        )
+                    ) * 100 AS efficiency,
+
+                    -- Total Shutdown Minutes
+                    SUM(COALESCE(wher.duration_minutes, 0)) AS shutdown_minutes,
+
+                    -- Last Shutdown Reason
+                    MAX(wher.reason_id) AS last_shutdown_reason_id
 
                 FROM work_center_hourly_entry whe
 
+                LEFT JOIN work_center_hourly_entry_reason_line wher
+                    ON wher.hourly_entry_id = whe.id
                 LEFT JOIN mrp_production mo
                     ON mo.id = whe.production_id
 
                 LEFT JOIN mrp_workorder wo
                     ON wo.production_id = mo.id
 
+                LEFT JOIN mrp_routing_workcenter rw
+                    ON rw.id = wo.operation_id
                 LEFT JOIN product_product pp
                     ON pp.id = mo.product_id
 
@@ -132,6 +135,6 @@ class ProductEfficiencySummary(models.Model):
                     pp.id,
                     pt.weight,
                     mo.cavity,
-                    wo.duration_expected
+                    rw.cycle_time
             )
         """)

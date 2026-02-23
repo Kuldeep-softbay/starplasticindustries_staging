@@ -1,12 +1,13 @@
 from odoo import models, fields, tools
 
+
 class RunningCavitySummary(models.Model):
     _name = 'running.cavity.summary'
     _description = 'Running Cavity Summary'
     _auto = False
 
     date = fields.Date()
-    workorder_no = fields.Char()
+    lot_id = fields.Many2one('stock.lot', string="Batch Number")
     machine_id = fields.Many2one('mrp.workcenter')
     shift_id = fields.Many2one('work.center.shift')
     shift_display = fields.Char(
@@ -36,7 +37,7 @@ class RunningCavitySummary(models.Model):
                 SELECT
                     row_number() OVER () AS id,
                     wcs.date,
-                    mo.name AS workorder_no,
+                    mo.lot_id,
                     wo.workcenter_id AS machine_id,
                     wcs.id AS shift_id,
                     wcs.mold_id AS product_id,
@@ -51,7 +52,9 @@ class RunningCavitySummary(models.Model):
                 JOIN mrp_production mo ON mo.id = wcs.production_id
                 JOIN mrp_workorder wo ON wo.production_id = mo.id
                 JOIN mrp_routing_workcenter rwc ON rwc.id = wo.operation_id
-                WHERE COALESCE(wcs.cavity_acknowledged, false) = true
+                WHERE
+                    COALESCE(wcs.cavity_acknowledged, false) = true
+                    AND COALESCE(wcs.cavity, 0) != COALESCE(rwc.cavity, 0)
             )
         """)
 
