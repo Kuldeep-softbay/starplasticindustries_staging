@@ -22,6 +22,8 @@ class MrpProduction(models.Model):
         store=True
     )
 
+    wo_qty = fields.Float(string='WO Qty', compute='_compute_customer_order', store=True)
+
     unit_weight = fields.Float(string="Unit Weight")
     total_kg = fields.Float(string="Total KG")
     total_pcs = fields.Integer(
@@ -262,6 +264,7 @@ class MrpProduction(models.Model):
         for mo in self:
             qty = 0.0
             po_number = False
+            self.wo_qty = 0.0
 
             if mo.origin:
                 match = re.search(r'\bS\d+\b', mo.origin)
@@ -277,8 +280,10 @@ class MrpProduction(models.Model):
                         qty = sum(solines.mapped('product_uom_qty'))
                         if solines:
                             po_number = solines[0].co_number
+                            wo_qty = solines[0].wo_qty
             mo.sale_order_qty = qty
             mo.customer_po_number = po_number
+            mo.wo_qty = wo_qty
 
     def action_view_shifts(self):
         self.ensure_one()

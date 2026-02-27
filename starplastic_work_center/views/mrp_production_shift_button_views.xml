@@ -17,6 +17,9 @@
             <field name="sale_order_qty"
                    options="{'no_create': True}"
                    placeholder="C.O Quantity"/>
+            <field name="wo_qty"
+                   options="{'no_create': True}"
+                   placeholder="WO Qty"/>
         </xpath>
         <xpath expr="//field[@name='product_id']" position="after">
             <field name="customer_po_number"/>

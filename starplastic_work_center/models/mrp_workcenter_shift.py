@@ -110,14 +110,27 @@ class WCShift(models.Model):
         store=True
     )
 
-    @api.depends('hourly_target_qty', 'unit_waight')
+    hourly_entry_ids = fields.One2many(
+        'work.center.hourly.entry',
+        'shift_id',
+        string='Hourly Entries for Target Calculation'
+    )
+
+    @api.depends('hourly_target_qty', 'hourly_entry_ids.unit_weight')
     def _compute_minimum_target(self):
         for rec in self:
-            min_nos = rec.hourly_target_qty * 0.80  # 80% target
+
+            hourly = rec.hourly_target_qty or 0.0
+
+            # Use average unit weight
+            weights = rec.hourly_entry_ids.mapped('unit_weight')
+            unit_weight = sum(weights) / len(weights) if weights else 0.0
+            print(f"Computing minimum target for shift {rec.id}: hourly={hourly}, unit_weight={unit_weight}")
+
+            min_nos = hourly * 0.95
+
             rec.minimum_target_nos = round(min_nos, 0)
-            rec.minimum_target_kg = round(min_nos * rec.unit_waight, 2)
-
-
+            rec.minimum_target_kg = round(min_nos * unit_weight, 2)
 
     @api.depends('production_id', 'production_id.product_qty', 'total_produced_qty')
     def _compute_remaining_qty(self):

@@ -10,6 +10,12 @@ class StockMove(models.Model):
         store=False
     )
 
+    rm_formulation = fields.Char(
+        string='RM Formulation',
+        compute='_compute_rm_formulation',
+        store=False
+    )
+
     @api.depends('product_id')
     def _compute_product_grade(self):
         for move in self:
@@ -18,6 +24,14 @@ class StockMove(models.Model):
                 values = move.product_id.product_template_variant_value_ids
                 grade = ", ".join(values.mapped('name'))
             move.product_grade = grade
+
+    @api.depends('product_id')
+    def _compute_rm_formulation(self):
+        for move in self:
+            rm_formulation = ''
+            if move.product_id:
+                rm_formulation = move.product_id.rm_formulation
+            move.rm_formulation = rm_formulation
 
     def action_generate_packing_memo(self):
         self.ensure_one()

@@ -39,22 +39,34 @@ class ProductionDelayReasonWizard(models.TransientModel):
     action = fields.Char(required=True)
 
 
-    def action_confirm(self):
-        self.ensure_one()
+    # def action_confirm(self):
+    #     self.ensure_one()
 
-        self.env['production.delay.action.log'].create({
+    #     self.env['production.delay.action.log'].create({
+    #         'workorder_id': self.workorder_id.id,
+    #         'reason_id': self.reason_id.id,
+    #         'action': self.action,
+    #     })
+
+    #     self.workorder_id.write({
+    #         'production_delay_acknowledged': True,
+    #         'production_delay_reason_id': self.reason_id.id,
+    #         'production_delay_acknowledged_by': self.env.user.id,
+    #     })
+
+    #     return {'type': 'ir.actions.act_window_close'}
+
+    def action_confirm(self):
+
+        log = self.env['production.delay.action.log'].create({
             'workorder_id': self.workorder_id.id,
             'reason_id': self.reason_id.id,
             'action': self.action,
         })
 
-        self.workorder_id.write({
-            'production_delay_acknowledged': True,
-            'production_delay_reason_id': self.reason_id.id,
-            'production_delay_acknowledged_by': self.env.user.id,
-        })
-
-        return {'type': 'ir.actions.act_window_close'}
+        return self.env.ref(
+            'starplastic_work_center.action_report_delay_production'
+        ).report_action(log)
 
 
 
@@ -94,6 +106,10 @@ class ProductionDelayReport(models.Model):
             }
         }
 
+    # def action_report_delay(self):
+    #     return self.env.ref(
+    #         'starplastic_work_center.action_production_delay_pdf'
+    #     ).report_action(self)
 
     def action_report_delay(self):
         return self.action_hide()
@@ -165,3 +181,5 @@ class ProductionDelayActionLog(models.Model):
     action_by = fields.Many2one('res.users', default=lambda self: self.env.user)
     date = fields.Datetime(default=fields.Datetime.now)
     action = fields.Char()
+    workorder_id = fields.Many2one('mrp.workorder', string="Work Order")
+

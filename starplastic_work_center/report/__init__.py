@@ -13,3 +13,4 @@ from . import unit_weight_tolerance_summary
 from . import production_delay_report
 from . import production_delay_summary
 from . import machine_data_report
+from . import power_consumption_analysis_report

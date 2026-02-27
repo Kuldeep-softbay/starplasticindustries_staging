@@ -12,3 +12,4 @@ from . import sale_order_line
 from . import production_memo
 from . import machine_data
 from . import mrp_rm_return
+from . import power_cunsuption
