@@ -106,9 +106,22 @@
 
                             <td t-esc="move.product_grade or '-'"/>
 
-                                <td t-esc="move.product_id.default_code or '-'"/>
-                                <td t-esc="', '.join(move.move_line_ids.mapped('lot_id.name')) if move.move_line_ids else '-'"/>
-                                <td>
+                            <td>
+                            <t t-set="lot" t-value="move.move_line_ids and move.move_line_ids[0].lot_id"/>
+                            <t t-if="lot">
+                                <t t-set="receipt_line"
+                                    t-value="env['stock.move.line'].search([
+                                        ('lot_id','=',lot.id),
+                                        ('picking_id.picking_type_id.code','=','incoming')
+                                    ], limit=1)"/>
+
+                                <!-- Supplier Batch -->
+                                <span t-esc="receipt_line.picking_id.supplier_batch_number or '-'"/>
+                            </t>
+                            <t t-if="not lot">-</t>
+                        </td>
+                            <td t-esc="', '.join(move.move_line_ids.mapped('lot_id.name')) if move.move_line_ids else '-'"/>
+                            <td>
                                 <t t-set="lot" t-value="move.move_line_ids and move.move_line_ids[0].lot_id"/>
                                 <t t-if="lot">
                                     <t t-set="receipt_line"
