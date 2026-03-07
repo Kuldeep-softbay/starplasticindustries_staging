@@ -35,8 +35,22 @@
                     </tr>
 
                     <tr>
+                        <td><b>M/C No</b></td>
+                        <td>
+                            <span t-esc="production.workorder_ids and production.workorder_ids[0].workcenter_id.machine_no or ''"/>
+                        </td>
+                    </tr>
+
+                    <tr>
                         <td><b>Item Code</b></td>
                         <td><span t-esc="production.lot_producing_id.name"/></td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Date</b></td>
+                        <td>
+                            <span t-esc="picking.date_done and picking.date_done.strftime('%d-%m-%Y') or (picking.scheduled_date and picking.scheduled_date.strftime('%d-%m-%Y'))"/>
+                        </td>
                     </tr>
 
                     <t t-set="first_move"
@@ -94,8 +108,19 @@
 
                                 <td t-esc="move.product_id.default_code or '-'"/>
                                 <td t-esc="', '.join(move.move_line_ids.mapped('lot_id.name')) if move.move_line_ids else '-'"/>
-                                <td t-esc="'-'"/>
-                        </tr>
+                                <td>
+                                <t t-set="lot" t-value="move.move_line_ids and move.move_line_ids[0].lot_id"/>
+                                <t t-if="lot">
+                                    <t t-set="receipt_line"
+                                    t-value="env['stock.move.line'].search([
+                                            ('lot_id','=',lot.id),
+                                            ('picking_id.picking_type_id.code','=','incoming')
+                                    ], limit=1)"/>
+                                    <span t-esc="receipt_line.picking_id.mfi_value or '-'"/>
+                                </t>
+                                <t t-if="not lot">-</t>
+                            </td>
+                     </tr>
 
                     </t>
 

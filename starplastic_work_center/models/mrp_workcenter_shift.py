@@ -116,16 +116,18 @@ class WCShift(models.Model):
         string='Hourly Entries for Target Calculation'
     )
 
-    @api.depends('hourly_target_qty', 'hourly_entry_ids.unit_weight')
+    @api.depends(
+        'hourly_target_qty',
+        'cavity',
+        'cycle_time_sec',
+        'mold_id.weight'
+    )
     def _compute_minimum_target(self):
         for rec in self:
 
             hourly = rec.hourly_target_qty or 0.0
 
-            # Use average unit weight
-            weights = rec.hourly_entry_ids.mapped('unit_weight')
-            unit_weight = sum(weights) / len(weights) if weights else 0.0
-            print(f"Computing minimum target for shift {rec.id}: hourly={hourly}, unit_weight={unit_weight}")
+            unit_weight = (rec.mold_id.weight or 0.0)
 
             min_nos = hourly * 0.95
 
