@@ -25,12 +25,19 @@ class StockMove(models.Model):
                 grade = ", ".join(values.mapped('name'))
             move.product_grade = grade
 
-    @api.depends('product_id')
+    @api.depends('picking_id')
     def _compute_rm_formulation(self):
+        Production = self.env['mrp.production']
+
         for move in self:
-            rm_formulation = ''
-            if move.product_id:
-                rm_formulation = move.product_id.rm_formulation
+            rm_formulation = False
+
+            if move.picking_id and move.picking_id.origin:
+                mo = Production.search([('name', '=', move.picking_id.origin)], limit=1)
+
+                if mo and mo.product_id:
+                    rm_formulation = mo.product_id.rm_formulation
+
             move.rm_formulation = rm_formulation
 
     def action_generate_packing_memo(self):

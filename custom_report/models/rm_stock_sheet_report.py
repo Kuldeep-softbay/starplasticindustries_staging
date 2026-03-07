@@ -120,6 +120,12 @@ class RmStockSheetWizard(models.TransientModel):
             grade = self._get_grade(product)
             internal_batch = ml.lot_id.name if ml.lot_id else ''
 
+            supplier_batch = ''
+            mfi = ''
+
+            if ml.move_id.picking_id:
+                supplier_batch = ml.move_id.picking_id.supplier_batch_number
+                mfi = ml.move_id.picking_id.mfi_value
             key = (tmpl.id, grade, internal_batch)
 
             if key not in aggregated:
@@ -127,6 +133,8 @@ class RmStockSheetWizard(models.TransientModel):
                     'rm_type': tmpl,
                     'grade': grade,
                     'internal_batch': internal_batch,
+                    'supplier_batch': supplier_batch,
+                    'mfi': mfi,
                     'party': ml.move_id.party_id,
                     'kgs': 0.0,
                 }
@@ -151,6 +159,8 @@ class RmStockSheetWizard(models.TransientModel):
                 'location_id': main_stock.id,
                 'rm_type': data['rm_type'].id,
                 'grade': data['grade'],
+                'mfi': data['mfi'],
+                'batch': data['supplier_batch'],
                 'internal_batch': data['internal_batch'],
                 'bag_qty': bags,
                 'kgs': data['kgs'],
