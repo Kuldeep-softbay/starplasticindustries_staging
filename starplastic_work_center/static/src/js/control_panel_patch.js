@@ -2,8 +2,14 @@
 
 import { patch } from "@web/core/utils/patch";
 import { ControlPanelButtons } from "@mrp_workorder/mrp_display/control_panel";
+import { useService } from "@web/core/utils/hooks";
 
 patch(ControlPanelButtons.prototype, {
+
+    setup(){
+        super.setup();
+        this.actionService = useService("action");
+    },
 
     onClickShiftHourEntry() {
         this.actionService.doAction({

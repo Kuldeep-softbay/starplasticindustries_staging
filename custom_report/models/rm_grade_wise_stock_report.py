@@ -199,7 +199,7 @@ class RmGradeWiseStockWizard(models.TransientModel):
                 main_product = mv.raw_material_production_id.product_id
             elif mv.production_id:
                 main_product = mv.production_id.product_id
-            elif hasattr(mv, 'party_id') and mv.party_id and mv.party_id.product_id:
+            elif hasattr(mv, 'party_id') and mv.party_id:
                 main_product = mv.party_id.product_id
 
             product_id_value = main_product.id if main_product and main_product.exists() else False

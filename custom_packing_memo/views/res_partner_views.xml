@@ -16,7 +16,7 @@
         <notebook position="inside">
                 <page string="Party Master">
 
-                    <group>
+                    <!-- <group>
                         <group string="Primary Contact">
                             <field name="primary_contact_person"/>
                             <field name="primary_contact_no"/>
@@ -43,7 +43,7 @@
 
                     <group string="Product Details">
                         <field name="product_details_ids" widget="many2many_tags"/>
-                    </group>
+                    </group> -->
 
                 </page>
             </notebook>

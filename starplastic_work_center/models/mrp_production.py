@@ -264,10 +264,10 @@ class MrpProduction(models.Model):
         for mo in self:
             qty = 0.0
             po_number = False
-            self.wo_qty = 0.0
+            wo_qty = 0.0
 
-            if mo.origin:
-                match = re.search(r'\bS\d+\b', mo.origin)
+            if mo.origin and mo.product_id:
+                match = re.search(r'\bSO\d+\b', mo.origin)
                 if match:
                     so = self.env['sale.order'].search(
                         [('name', '=', match.group(0))],
@@ -275,12 +275,14 @@ class MrpProduction(models.Model):
                     )
                     if so:
                         solines = so.order_line.filtered(
-                            lambda l: l.product_id == mo.product_id
+                            lambda l: l.product_id.id == mo.product_id.id
                         )
-                        qty = sum(solines.mapped('product_uom_qty'))
+
                         if solines:
-                            po_number = solines[0].co_number
-                            wo_qty = solines[0].wo_qty
+                            qty = sum(solines.mapped('product_uom_qty'))
+                            po_number = solines[0].co_number or False
+                            wo_qty = solines[0].wo_qty or 0.0
+
             mo.sale_order_qty = qty
             mo.customer_po_number = po_number
             mo.wo_qty = wo_qty
