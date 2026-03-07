@@ -87,10 +87,6 @@
                 <th>C.O. No.</th>
                 <th>Batch No. &amp; Dt.</th>
                 <th>Item Name</th>
-
-                <!-- NEW FIELD -->
-                <th>Planned Start Date</th>
-
                 <th>Planned Prod. Start &amp; End Date</th>
                 <th>Actual Start &amp; End Date</th>
                 <th>Exp. Del. Date</th>
@@ -123,12 +119,6 @@
                     <span t-esc="production.product_id.display_name"/>
                 </td>
 
-                <!-- NEW FIELD VALUE -->
-                <td>
-                    <span t-esc="o.workorder_id.planned_start_date"
-                          t-options='{"widget": "datetime"}'/>
-                </td>
-
                 <!-- Planned Production -->
                 <td>
                     <span t-esc="o.workorder_id.planned_start_date"
@@ -150,7 +140,7 @@
 
                 <!-- Expected -->
                 <td>
-                    <span t-esc="production.date_deadline"
+                    <span t-esc="o.workorder_id.expected_delivery_date"
                           t-options='{"widget": "date"}'/>
                 </td>
 
