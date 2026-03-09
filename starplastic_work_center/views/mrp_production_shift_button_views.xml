@@ -32,16 +32,19 @@
                     <field name="total_kg"/>
                     <field name="total_pcs"/> -->
                     <field name="total_shift_produced_qty" readonly="1"/>
+                    <field name="unit_weight" readonly="1"/>
+                    <field name="total_kg" readonly="1"/>
                 </group>
             </group>
-
             <group string="Shift Details">
                 <field name="shift_ids" readonly="1">
-                    <list>
+                    <list editable="bottom">
                         <field name="date"/>
-                        <field name="template_id" string="Shift"/>
+                        <field name="template_id"/>
+                        <field name="machine_id"/>
+                        <field name="unit_weight_avg"/>
+                        <field name="production_kg"/>
                         <field name="total_produced_qty"/>
-                        <field name="state"/>
                     </list>
                 </field>
             </group>
@@ -53,7 +56,9 @@
                     <list editable="bottom">
                         <field name="date"/>
                         <field name="product_id"/>
+                        <field name="source_location_id"/>
                         <field name="location_id"/>
+                        <field name="lot_id"/>
                         <field name="quantity"/>
                         <field name="uom_id"/>
                     </list>

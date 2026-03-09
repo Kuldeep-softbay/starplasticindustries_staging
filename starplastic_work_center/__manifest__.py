@@ -50,6 +50,8 @@
             "starplastic_work_center/static/src/xml/control_panel_inherit.xml",
             "starplastic_work_center/static/src/js/power_matrix.js",
             "starplastic_work_center/static/src/xml/power_matrix_template.xml",
+            "starplastic_work_center/static/src/js/shopfloor_menu_patch.js",
+            "starplastic_work_center/static/src/xml/shopfloor_menu_inherit.xml",
         ],
     },
     'installable': True,

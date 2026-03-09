@@ -118,6 +118,17 @@ class MrpProduction(models.Model):
         store=True
     )
 
+    total_kg = fields.Float(
+        string="Total Production (Kg)",
+        compute="_compute_total_kg",
+        store=True
+    )
+
+    @api.depends('total_shift_produced_qty', 'unit_weight')
+    def _compute_total_kg(self):
+        for rec in self:
+            rec.total_kg = rec.total_shift_produced_qty * rec.unit_weight
+
     @api.depends('shift_ids.total_produced_qty')
     def _compute_total_shift_produced(self):
         for rec in self:

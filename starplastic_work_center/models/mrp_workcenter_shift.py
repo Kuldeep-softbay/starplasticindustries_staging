@@ -116,18 +116,92 @@ class WCShift(models.Model):
         string='Hourly Entries for Target Calculation'
     )
 
+    channel_no = fields.Char("Ch.No")
+
+    workorder_id = fields.Many2one(
+        'mrp.workorder',
+        string="Work Order"
+    )
+
+    machine_id = fields.Many2one(
+        'mrp.workcenter',
+        string="Machine",
+        compute="_compute_machine",
+        store=True
+    )
+
+    unit_weight_avg = fields.Float("Unit Weight Average")
+
+    production_kg = fields.Float("Production Kg Total")
+
+    production_nos = fields.Float("Production Nos")
+
+    error_set = fields.Float("Error Set")
+
+    error_set_unit_weight = fields.Float("Error Set Unit Weight")
+
+    final_production_kg = fields.Float(
+        compute="_compute_final_values",
+        store=True
+    )
+
+    final_production_nos = fields.Float(
+        compute="_compute_final_values",
+        store=True
+    )
+
+    hourly_entry_id = fields.Many2one(
+        'work.center.hourly.entry',
+        string="Hourly Entry"
+    )
+
+    unit_weight_avg = fields.Float(
+        string="Unit Weight Average",
+        compute="_compute_unit_weight",
+        store=True
+    )
+
+    @api.depends('hourly_entry_id')
+    def _compute_unit_weight(self):
+        for rec in self:
+            if rec.hourly_entry_id:
+                rec.unit_weight_avg = rec.hourly_entry_id.weight_gm
+            else:
+                rec.unit_weight_avg = 0
+
+    @api.depends('workorder_id')
+    def _compute_machine(self):
+        for rec in self:
+            if rec.workorder_id:
+                rec.machine_id = rec.workorder_id.workcenter_id.id
+            elif rec.production_id.workorder_ids:
+                rec.machine_id = rec.production_id.workorder_ids[0].workcenter_id.id
+            else:
+                rec.machine_id = False
+
+    @api.depends('production_kg', 'error_set', 'unit_weight_avg')
+    def _compute_final_values(self):
+        for rec in self:
+
+            rec.final_production_kg = rec.production_kg - rec.error_set
+
+            if rec.unit_weight_avg:
+                rec.final_production_nos = rec.final_production_kg / rec.unit_weight_avg
+            else:
+                rec.final_production_nos = 0
+
     @api.depends(
         'hourly_target_qty',
         'cavity',
         'cycle_time_sec',
-        'mold_id.weight'
+        'mold_id.weight_gm'
     )
     def _compute_minimum_target(self):
         for rec in self:
 
             hourly = rec.hourly_target_qty or 0.0
 
-            unit_weight = (rec.mold_id.weight or 0.0)
+            unit_weight = (rec.mold_id.weight_gm or 0.0) / 1000.0
 
             min_nos = hourly * 0.95
 

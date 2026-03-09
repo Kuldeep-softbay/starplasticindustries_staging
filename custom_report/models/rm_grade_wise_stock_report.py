@@ -160,7 +160,7 @@ class RmGradeWiseStockWizard(models.TransientModel):
         Report = self.env['rm.grade.wise.stock.report']
         Move = self.env['stock.move']
 
-        # Remove old records for this user
+        # Remove previous report records
         Report.search([
             ('computation_key', 'like', f"{self.env.uid}-")
         ]).unlink()
@@ -171,15 +171,45 @@ class RmGradeWiseStockWizard(models.TransientModel):
         moves = Move.search(self._base_domain(), order='date,id')
 
         for mv in moves:
-            received = issued = 0.0
-            qty = mv.product_uom_qty
 
-            if mv.location_dest_id.usage == 'internal' and mv.location_id.usage != 'internal':
+            received = 0.0
+            issued = 0.0
+
+            qty = sum(mv.move_line_ids.mapped('qty_done')) or mv.product_uom_qty
+
+            src = mv.location_id
+            dest = mv.location_dest_id
+
+            # --------------------------------------------------
+            # PURCHASE RECEIPT
+            # --------------------------------------------------
+            if src.usage == 'supplier' and dest.usage == 'internal':
                 received = qty
-            elif mv.location_id.usage == 'internal':
+
+            # --------------------------------------------------
+            # MANUFACTURING MOVES
+            # --------------------------------------------------
+            elif mv.raw_material_production_id:
+
+                # Issue → Stock → Production
+                if dest.usage == 'production':
+                    issued = qty
+
+                # Return → Production → Stock
+                elif src.usage == 'production' and dest.usage == 'internal':
+                    received = qty
+
+            # --------------------------------------------------
+            # DELIVERY
+            # --------------------------------------------------
+            elif src.usage == 'internal' and dest.usage == 'customer':
                 issued = qty
 
+            # --------------------------------------------------
+            # BALANCE UPDATE
+            # --------------------------------------------------
             balance += (received - issued)
+
             # -------- PARTICULARS --------
             if mv.raw_material_production_id:
                 particulars = 'Production'
@@ -192,7 +222,6 @@ class RmGradeWiseStockWizard(models.TransientModel):
 
             lot_name = mv.move_line_ids[:1].lot_id.name if mv.move_line_ids else False
 
-            # -------- MAIN FINISHED PRODUCT (product.product) --------
             main_product = False
 
             if mv.raw_material_production_id:

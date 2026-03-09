@@ -129,8 +129,6 @@ class WorkCenterHourlyEntry(models.Model):
         'produced_qty_number',
         'reject_qty_number',
         'shift_id.hourly_target_qty',
-        'actual_cycle_time',
-        'shift_id.cycle_time_sec',
         'reason_line_ids.duration_minutes'
     )
     def _compute_efficiency(self):
@@ -153,25 +151,24 @@ class WorkCenterHourlyEntry(models.Model):
             # -----------------------------
             # WORKER EFFICIENCY
             # -----------------------------
-            standard_cycle = rec.shift_id.cycle_time_sec or 0
-            actual_cycle = rec.actual_cycle_time or 0
-
-            # total downtime minutes
+            produced_qty = rec.produced_qty_number or 0
             downtime = sum(rec.reason_line_ids.mapped('duration_minutes')) or 0
 
-            # available time in the hour
             available_time = max(60 - downtime, 0)
 
-            # cycle performance
-            if standard_cycle > 0 and actual_cycle > 0:
-                performance = standard_cycle / actual_cycle
+            if available_time > 0:
+                actual_hourly_production = (produced_qty / available_time) * 60
             else:
-                performance = 0
+                actual_hourly_production = 0
 
-            # time utilization factor
-            time_factor = available_time / 60
+            target_hourly = rec.shift_id.hourly_target_qty or 0
 
-            rec.worker_efficiency = round(time_factor * performance * 100, 2)
+            if target_hourly > 0:
+                rec.worker_efficiency = round(
+                    (actual_hourly_production / target_hourly) * 100, 2
+                )
+            else:
+                rec.worker_efficiency = 0.0
 
     @api.depends('weight_gm')
     def _compute_unit_weight(self):

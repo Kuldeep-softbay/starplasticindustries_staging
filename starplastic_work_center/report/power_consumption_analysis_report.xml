@@ -8,7 +8,6 @@
     <menuitem id="menu_power_matrix"
               name="Power Consumption Report"
               parent="mrp.menu_mrp_reporting"
-              action="action_power_matrix_view"
               sequence="50"/>
 
 </odoo>
