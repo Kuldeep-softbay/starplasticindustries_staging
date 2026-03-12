@@ -15,7 +15,7 @@
                 </group>
 
                 <!-- Injection Machine -->
-                <group string="Injection Parameters"
+                <group string="Injaction Parameters"
                     invisible="machine_type != 'injection'">
 
                     <field name="ing_sec"/>

@@ -6,6 +6,8 @@ class WcDowntimeReason(models.Model):
 
 
     name = fields.Char(required=True, string='Reason')
+    code = fields.Char(string='Code')
+    affect_product_efficiency = fields.Boolean(string='Affects Product Efficiency')
 
 
 class WcDowntimeSubreason(models.Model):
@@ -14,8 +16,31 @@ class WcDowntimeSubreason(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
 
-    name = fields.Char(required=True, string='Sub Reason')
-    reason_id = fields.Many2one('wc.downtime.reason', string='Reason', required=True)
+    name = fields.Char(
+        string='Sub Reason',
+        required=True,
+        tracking=True
+    )
+
+    reason_id = fields.Many2one(
+        'wc.downtime.reason',
+        string='Reason',
+        ondelete='cascade',
+        tracking=True
+    )
+    reason_code = fields.Char(
+        string='Reason Code',
+    )
+
+    machine_type = fields.Selection([
+        ('blow_molding', 'Blow Molding'),
+        ('injection', 'Injaction Molding'),
+    ], string="Type")
+
+    code = fields.Char(
+        string='Code',
+        tracking=True
+    )
 
 
 class WorkCenterShiftDowntimeSummary(models.Model):

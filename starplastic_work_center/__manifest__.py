@@ -43,6 +43,7 @@
         'report/raw_material_issue_chit_template.xml',
         "views/power_consumption_views.xml",
         'report/power_consumption_analysis_report.xml',
+        'views/hr_employee_views.xml',
     ],
     "assets": {
         "web.assets_backend": [

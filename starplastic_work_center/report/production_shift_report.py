@@ -1,14 +1,6 @@
 from odoo import models, fields, tools
 
 
-class WcDowntimeReason(models.Model):
-    _inherit = "wc.downtime.reason"
-
-    affect_product_efficiency = fields.Boolean(
-        string="Affect Product Efficiency"
-    )
-
-
 class MrpProductionSlip(models.Model):
     _name = "mrp.production.slip"
     _description = "Production Slip Report"

@@ -171,4 +171,5 @@ class MrpRmReturnLine(models.Model):
                 if rec.production_id:
                     rec.production_id._compute_rm_return_qty()
                     rec.production_id._compute_pmemo()
+
         return res

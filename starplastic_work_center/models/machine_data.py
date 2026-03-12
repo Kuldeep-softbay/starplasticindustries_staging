@@ -18,7 +18,7 @@ class MachineData(models.Model):
     product_id = fields.Many2one("product.product")
     date = fields.Date(default=fields.Date.today)
 
-    # -------- Injection Machine --------
+    # -------- Injaction Machine --------
     ing_sec = fields.Float("ING (Sec)")
     ing_pressure = fields.Float("ING Pressure")
 

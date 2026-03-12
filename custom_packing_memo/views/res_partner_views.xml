@@ -13,10 +13,10 @@
         <xpath expr="//page[@name='internal_notes']" position="attributes">
                 <attribute name="string">Packing Details</attribute>
         </xpath>
-        <notebook position="inside">
+        <!-- <notebook position="inside">
                 <page string="Party Master">
-
-                    <!-- <group>
+                <field name="customer_type"/>
+                    <group>
                         <group string="Primary Contact">
                             <field name="primary_contact_person"/>
                             <field name="primary_contact_no"/>
@@ -43,10 +43,10 @@
 
                     <group string="Product Details">
                         <field name="product_details_ids" widget="many2many_tags"/>
-                    </group> -->
+                    </group>
 
                 </page>
-            </notebook>
+            </notebook> -->
         </field>
     </record>
 </odoo>
