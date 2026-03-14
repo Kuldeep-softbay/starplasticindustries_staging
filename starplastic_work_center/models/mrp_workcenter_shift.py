@@ -11,7 +11,7 @@ class WCShiftTemplate(models.Model):
 
     name = fields.Char(required=True)
     code = fields.Selection(
-        [('A', 'A'), ('B', 'B'), ('C', 'C')],
+        [('F', 'A'), ('S', 'B'), ('T', 'C')],
         required=True,
         help="Short code for the shift (A/B/C)."
     )
@@ -34,11 +34,11 @@ class WCShiftTemplate(models.Model):
     @api.onchange('code')
     def _onchange_shift_code(self):
         """Set start hour based on shift code"""
-        if self.code == 'A':
+        if self.code == 'F':
             self.start_hour = 6  # 6 AM - 2 PM
-        elif self.code == 'B':
+        elif self.code == 'S':
             self.start_hour = 14  # 2 PM - 10 PM
-        elif self.code == 'C':
+        elif self.code == 'T':
             self.start_hour = 22  # 10 PM - 6 AM
 
     @api.constrains('code', 'start_hour')
@@ -54,11 +54,11 @@ class WCShiftTemplate(models.Model):
     def _compute_start_hour(self):
         """Automatically set start hour based on shift code"""
         for rec in self:
-            if rec.code == 'A':
+            if rec.code == 'F':
                 rec.start_hour = 6  # 6 AM to 2 PM
-            elif rec.code == 'B':
+            elif rec.code == 'S':
                 rec.start_hour = 14  # 2 PM to 10 PM
-            elif rec.code == 'C':
+            elif rec.code == 'T':
                 rec.start_hour = 22  # 10 PM to 6 AM
 
     def get_time_keys(self):
