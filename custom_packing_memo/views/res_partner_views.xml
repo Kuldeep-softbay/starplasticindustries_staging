@@ -15,7 +15,7 @@
         </xpath>
         <notebook position="inside">
                 <page string="Party Master">
-                <field name="customer_type"/>
+                <!-- <field name="customer_type"/>
                     <group>
                         <group string="Primary Contact">
                             <field name="primary_contact_person"/>
@@ -43,7 +43,7 @@
 
                     <group string="Product Details">
                         <field name="product_details_ids" widget="many2many_tags"/>
-                    </group>
+                    </group> -->
 
                 </page>
             </notebook>
