@@ -190,6 +190,18 @@
                     </tbody>
                     </table>
 
+                    <!-- ================= SIGNATURE ================= -->
+                    <div style="margin-top:40px; width:100%;">
+                        <div style="float:left; text-align:right;">
+                            <div style="margin-bottom:30px;">
+                                <!-- space for signature -->
+                            </div>
+                            <strong>Sign. Asst. S &amp; M</strong>
+                        </div>
+                    </div>
+
+                    <div style="clear:both;"></div>
+
                     <!-- ================= FOOTER (UNCHANGED) ================= -->
                     <div class="footer" style="text-align:center; width:100%; margin-top:10px;">
                         <img t-if="company and company.packing_footer_image"

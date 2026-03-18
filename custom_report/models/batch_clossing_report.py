@@ -29,71 +29,68 @@ class BatchClosingReport(models.Model):
                     row_number() OVER() AS id,
 
                     lot.id AS lot_id,
-                    mo.date_start::date AS wo_date,
                     pp.id AS product_id,
 
+                    mo.date_start::date AS wo_date,
                     TO_CHAR(mo.date_start, 'YYYY-MM') AS month,
 
-                    COALESCE(SUM(rs.scrap_qty), 0) AS black_spot,
+                    /* Scrap */
+                    COALESCE((
+                        SELECT SUM(scrap_qty)
+                        FROM stock_scrap s
+                        WHERE s.lot_id = lot.id
+                    ), 0) AS black_spot,
 
                     0.0 AS cut_pcs,
                     0.0 AS short_qty,
 
-                    mo.wo_qty AS wo_qty,
-                    mo.production_qty AS production_qty,
+                    COALESCE(mo.wo_qty, 0) AS wo_qty,
+                    COALESCE(mo.production_qty, 0) AS production_qty,
 
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.state = 'done'
-                            THEN sml2.quantity
-                            ELSE 0
-                        END
-                    ), 0) AS dispatch_qty
+                    /* Dispatch */
+                    COALESCE((
+                        SELECT SUM(sml.quantity)
+                        FROM stock_move_line sml
+                        JOIN stock_move sm ON sm.id = sml.move_id
+                        JOIN stock_picking sp ON sp.id = sm.picking_id
+                        WHERE sml.lot_id = lot.id
+                        AND sp.state = 'done'
+                        AND sp.picking_type_id IN (
+                            SELECT id FROM stock_picking_type WHERE code = 'outgoing'
+                        )
+                    ), 0) AS dispatch_qty,
 
-                FROM mrp_production mo
+                    /* ✅ ONLY INTERNAL STOCK */
+                    COALESCE((
+                        SELECT SUM(sq.quantity)
+                        FROM stock_quant sq
+                        JOIN stock_location sl ON sl.id = sq.location_id
+                        WHERE sq.lot_id = lot.id
+                        AND sl.usage = 'internal'
+                    ), 0) AS remaining_qty
 
-                /* Product */
-                INNER JOIN product_product pp
-                    ON pp.id = mo.product_id
+                FROM stock_lot lot
 
-                /* Production Moves */
-                INNER JOIN stock_move sm
-                    ON sm.production_id = mo.id
-                    AND sm.state = 'done'
+                LEFT JOIN product_product pp
+                    ON pp.id = lot.product_id
 
-                /* Production Move Lines */
-                INNER JOIN stock_move_line sml
-                    ON sml.move_id = sm.id
-                    AND sml.lot_id IS NOT NULL
+                LEFT JOIN LATERAL (
+                    SELECT mo.*
+                    FROM mrp_production mo
+                    JOIN stock_move sm ON sm.production_id = mo.id
+                    JOIN stock_move_line sml ON sml.move_id = sm.id
+                    WHERE sml.lot_id = lot.id
+                    LIMIT 1
+                ) mo ON TRUE
 
-                /* Lot */
-                INNER JOIN stock_lot lot
-                    ON lot.id = sml.lot_id
-
-                /* Dispatch Moves */
-                LEFT JOIN stock_move sm2
-                    ON sm2.product_id = pp.id
-                    AND sm2.state = 'done'
-
-                LEFT JOIN stock_move_line sml2
-                    ON sml2.move_id = sm2.id
-                    AND sml2.lot_id = lot.id
-
-                LEFT JOIN stock_picking sp
-                    ON sp.id = sm2.picking_id
-
-                /* Scrap */
-                LEFT JOIN stock_scrap rs
-                    ON rs.lot_id = lot.id
-
-                WHERE mo.state = 'done'
-
-                GROUP BY
-                    lot.id,
-                    mo.date_start,
-                    pp.id,
-                    mo.wo_qty,
-                    mo.production_qty
+                /* ✅ FINAL FILTER */
+                WHERE COALESCE((
+                    SELECT SUM(sq.quantity)
+                    FROM stock_quant sq
+                    JOIN stock_location sl ON sl.id = sq.location_id
+                    WHERE sq.lot_id = lot.id
+                    AND sl.usage = 'internal'
+                ), 0) = 0
             )
         """)
 
