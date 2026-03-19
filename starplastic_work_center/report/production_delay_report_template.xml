@@ -163,12 +163,32 @@
     <br/><br/>
 
     <!-- Signature -->
-    <table style="width:100%;">
-        <tr>
-            <td>H.O.D. PRODN :</td>
-            <td style="text-align:right;">PRODN MGR. :</td>
-        </tr>
     </table>
+        <br/><br/>
+        <table style="width:100%; font-size:13px; text-align:center;">
+            <tr>
+                <!-- LEFT -->
+                <td style="width:33%; text-align:left;">
+                    <div>
+                        Sign. PPO
+                    </div>
+                </td>
+
+                <!-- CENTER -->
+                <td style="width:33%; text-align:center;">
+                    <div>
+                        Sign. HOD Production.
+                    </div>
+                </td>
+
+                <!-- RIGHT -->
+                <td style="width:33%; text-align:right;">
+                    <div>
+                        Sign. S &amp; M
+                    </div>
+                </td>
+            </tr>
+        </table>
 
 </template>
 

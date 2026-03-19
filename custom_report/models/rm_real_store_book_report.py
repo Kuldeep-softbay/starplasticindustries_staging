@@ -168,9 +168,14 @@ class RmRealStoreBookWizard(models.TransientModel):
     def _get_grade_name(self, product):
         if not product:
             return ''
-        return ", ".join(
-            product.product_template_variant_value_ids.mapped('name')
+
+        tmpl = product.product_tmpl_id
+
+        grade_lines = tmpl.attribute_line_ids.filtered(
+            lambda l: 'grade' in l.attribute_id.name.lower()
         )
+
+        return ", ".join(grade_lines.mapped('value_ids.name'))
 
     # -----------------------------------------------------
     # Main Action
@@ -186,50 +191,98 @@ class RmRealStoreBookWizard(models.TransientModel):
 
         moves = Move.search(self._base_domain(), order='date, id')
 
-        _logger.info(
-            "RM Red Stock Book Report moves: %s",
-            len(moves)
-        )
-
         balance = opening_balance
+        kg_uom = self.env.ref('uom.product_uom_kgm')
 
         for mv in moves:
-            qty = mv.product_uom_qty
+
+            # ❌ Skip finished product (MO output)
+            if mv.production_id and not mv.raw_material_production_id:
+                continue
+
+            # ❌ Skip WH/MO entries
+            if mv.picking_id and mv.picking_id.name and mv.picking_id.name.startswith('WH/MO/'):
+                continue
+
+            # ==================================================
+            # ✅ QTY IN KG (FIXED)
+            # ==================================================
+            qty = 0.0
+            if mv.move_line_ids:
+                for line in mv.move_line_ids:
+                    qty += line.product_uom_id._compute_quantity(
+                        line.qty_done, kg_uom
+                    )
+            else:
+                qty = mv.product_uom._compute_quantity(
+                    mv.product_uom_qty, kg_uom
+                )
+
             received = 0.0
             production = 0.0
 
-            if self.location_id:
-                if mv.location_dest_id == self.location_id:
-                    received = qty
-                elif mv.location_id == self.location_id:
-                    production = qty
-            else:
-                if mv.location_dest_id.usage == 'internal' and mv.location_id.usage != 'internal':
-                    received = qty
-                elif mv.location_id.usage == 'internal' and mv.location_dest_id.usage != 'internal':
+            src = mv.location_id
+            dest = mv.location_dest_id
+
+            # --------------------------------------------------
+            # PURCHASE
+            # --------------------------------------------------
+            if src.usage == 'supplier' and dest.usage == 'internal':
+                received = qty
+
+            # --------------------------------------------------
+            # RM ISSUE (WH/PC ONLY)
+            # --------------------------------------------------
+            elif (
+                mv.picking_id
+                and mv.picking_id.origin
+                and 'WH/MO/' in mv.picking_id.origin
+                and mv.picking_id.name.startswith('WH/PC/')
+            ):
+                if src.usage == 'internal' and dest.usage == 'internal':
                     production = qty
 
+            # ❌ Skip unwanted rows
+            if not received and not production:
+                continue
+
+            # --------------------------------------------------
+            # BALANCE
+            # --------------------------------------------------
             balance += (received - production)
-            main_product = False
-            if mv.raw_material_production_id:
-                main_product = mv.raw_material_production_id.product_id
-            elif mv.production_id:
-                main_product = mv.production_id.product_id
-            # elif hasattr(mv, 'party_id') and mv.party_id and mv.party_id.product_id:
-            #     main_product = mv.party_id.product_id
 
-            product_id_value = main_product.id if main_product and main_product.exists() else False
+            # --------------------------------------------------
+            # GET MO PRODUCT
+            # --------------------------------------------------
+            mo = False
+            if mv.picking_id and mv.picking_id.origin:
+                mo = self.env['mrp.production'].search([
+                    ('name', '=', mv.picking_id.origin)
+                ], limit=1)
 
+            # --------------------------------------------------
+            # PRODUCT LOGIC
+            # --------------------------------------------------
+            if received:
+                product_id_value = False  # hide for purchase
+            elif production:
+                product_id_value = mo.product_id.id if mo else mv.product_id.id
+            else:
+                product_id_value = False
+
+            # --------------------------------------------------
+            # CREATE
+            # --------------------------------------------------
             Report.create({
                 'computation_key': computation_key,
                 'date': mv.date.date(),
-                'particulars': mv.picking_id.origin if mv.picking_id else ' ',
+                'particulars': mv.picking_id.origin if mv.picking_id else '',
                 'product_id': product_id_value,
                 'batch': mv.picking_id.internal_batch_number if mv.picking_id else '',
-                'grade': self._get_grade_name(main_product) if main_product else '',
-                'vendor_id': mv.partner_id.id
-                             if mv.partner_id else
-                             (mv.picking_id.partner_id.id if mv.picking_id else False),
+                'grade': self._get_grade_name(mv.product_id),
+                'vendor_id': mv.partner_id.id if mv.partner_id else (
+                    mv.picking_id.partner_id.id if mv.picking_id else False
+                ),
                 'invoice_no': mv.picking_id.invoice_number if mv.picking_id else '',
                 'received_qty': received,
                 'pmemo_no': mv.reference or (mv.picking_id.name if mv.picking_id else ''),

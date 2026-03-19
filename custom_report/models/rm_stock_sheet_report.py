@@ -59,9 +59,16 @@ class RmStockSheetWizard(models.TransientModel):
         )
 
     def _get_grade(self, product):
-        return ", ".join(
-            product.product_template_variant_value_ids.mapped('name')
+        if not product:
+            return ''
+
+        tmpl = product.product_tmpl_id
+
+        grade_lines = tmpl.attribute_line_ids.filtered(
+            lambda l: 'grade' in l.attribute_id.name.lower()
         )
+
+        return ", ".join(grade_lines.mapped('value_ids.name'))
 
     # ---------------------------------------------------------
     # MAIN ACTION
@@ -73,9 +80,11 @@ class RmStockSheetWizard(models.TransientModel):
         MoveLine = self.env['stock.move.line']
 
         main_stock = self.env.ref('stock.stock_location_stock')
+        kg_uom = self.env.ref('uom.product_uom_kgm')
 
         computation_key = f"{self.env.uid}-{fields.Datetime.now().strftime('%Y%m%d%H%M%S')}"
 
+        # Clear previous
         Report.search([('computation_key', '=', computation_key)]).unlink()
 
         domain = [
@@ -100,10 +109,16 @@ class RmStockSheetWizard(models.TransientModel):
             product = ml.product_id
             tmpl = product.product_tmpl_id
 
+            # Only RM products
             if not (tmpl.purchase_ok and not tmpl.sale_ok):
                 continue
 
-            qty = ml.qty_done
+            # ✅ FIXED KG CONVERSION
+            qty = ml.product_uom_id._compute_quantity(
+                ml.qty_done,
+                kg_uom
+            )
+
             if not qty:
                 continue
 
@@ -126,6 +141,7 @@ class RmStockSheetWizard(models.TransientModel):
             if ml.move_id.picking_id:
                 supplier_batch = ml.move_id.picking_id.supplier_batch_number
                 mfi = ml.move_id.picking_id.mfi_value
+
             key = (tmpl.id, grade, internal_batch)
 
             if key not in aggregated:
@@ -147,6 +163,8 @@ class RmStockSheetWizard(models.TransientModel):
         BAG_CAPACITY = 25.0
 
         for data in aggregated.values():
+
+            # ❌ Skip negative / zero stock
             if data['kgs'] <= 0:
                 continue
 
@@ -163,8 +181,8 @@ class RmStockSheetWizard(models.TransientModel):
                 'batch': data['supplier_batch'],
                 'internal_batch': data['internal_batch'],
                 'bag_qty': bags,
-                'kgs': data['kgs'],
-                'total_kgs': data['kgs'],
+                'kgs': round(data['kgs'], 3),
+                'total_kgs': round(data['kgs'], 3),
             })
 
         return {

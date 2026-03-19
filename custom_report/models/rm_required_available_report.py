@@ -152,6 +152,9 @@ class RmRequiredAvailableWizard(models.TransientModel):
 
         moves = Move.search(self._base_domain())
 
+        # ✅ KG UOM reference
+        kg_uom = self.env.ref('uom.product_uom_kgm')
+
         rm_totals = {}
 
         for mv in moves:
@@ -169,7 +172,22 @@ class RmRequiredAvailableWizard(models.TransientModel):
                     'available': self._compute_opening_balance(tmpl_id),
                 }
 
-            qty = mv.product_uom_qty
+            # ==================================================
+            # ✅ FIXED QTY (KG CONVERSION)
+            # ==================================================
+            qty = 0.0
+            if mv.move_line_ids:
+                for line in mv.move_line_ids:
+                    qty += line.product_uom_id._compute_quantity(
+                        line.qty_done,
+                        kg_uom
+                    )
+            else:
+                qty = mv.product_uom._compute_quantity(
+                    mv.product_uom_qty,
+                    kg_uom
+                )
+            # ==================================================
 
             if mv.location_dest_id.usage == 'internal':
                 rm_totals[tmpl_id]['available'] += qty
@@ -182,9 +200,9 @@ class RmRequiredAvailableWizard(models.TransientModel):
             Report.create({
                 'computation_key': computation_key,
                 'product_id': data['product_id'],
-                'rm_required_qty': data['required'],
-                'rm_available_qty': data['available'],
-                'difference_qty': data['required'] - data['available'],
+                'rm_required_qty': round(data['required'], 3),
+                'rm_available_qty': round(data['available'], 3),
+                'difference_qty': round(data['required'] - data['available'], 3),
                 'location_id': self.location_id.id if self.location_id else False,
             })
 
